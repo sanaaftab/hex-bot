@@ -1,21 +1,20 @@
+#!/f/Python/Python39/python
 import socket
 from random import choice
 from time import sleep
 
 
-class NaiveAgent():
-    """This class describes the default Hex agent. It will randomly send a
-    valid move at each turn, and it will choose to swap with a 50% chance.
+class Agent14:
     """
+    
+    ~~~~~ TBD ~~~~~
 
+    """
     HOST = "127.0.0.1"
     PORT = 1234
 
     def __init__(self, board_size=11):
-        self.s = socket.socket(
-            socket.AF_INET, socket.SOCK_STREAM
-        )
-
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((self.HOST, self.PORT))
 
         self.board_size = board_size
@@ -28,29 +27,34 @@ class NaiveAgent():
 
         while True:
             data = self.s.recv(1024)
-            if not data:
-                break
             # print(f"{self.colour} {data.decode('utf-8')}", end="")
-            if (self.interpret_data(data)):
+            if not data or self.interpret_data(data):
                 break
-
         # print(f"Naive agent {self.colour} terminated")
 
     def interpret_data(self, data):
-        """Checks the type of message and responds accordingly. Returns True
-        if the game ended, False otherwise.
         """
+        Checks the type of message and responds accordingly.
 
+        :returns: True if the game ended, False otherwise.
+        """
+        # data = 'START;2;R\n' -- strip \n --> 'START;2;R'
         messages = data.decode("utf-8").strip().split("\n")
+        # messages = [['START', 2, 'R'], ['']] ... why?
         messages = [x.split(";") for x in messages]
-        # print(messages)
+
         for s in messages:
             if s[0] == "START":
+                if int(s[1]) <= 0:
+                    print(f"Invalid board size provided: {s[1]}")
+                    return True
                 self.board_size = int(s[1])
+                if s[2] not in ["R", "B"]:
+                    print(f"Invalid player colour provided: {s[2]}")
+                    return True
                 self.colour = s[2]
-                self.board = [
-                    [0]*self.board_size for i in range(self.board_size)]
 
+                self.board = [[0] * self.board_size for _ in range(self.board_size)]
                 if self.colour == "R":
                     self.make_move()
 
@@ -67,46 +71,40 @@ class NaiveAgent():
                         self.make_move()
 
                 elif s[3] == self.colour:
+                    # s[1] = 2,3 -- split(',') --> [2, 3]
                     action = [int(x) for x in s[1].split(",")]
                     self.board[action[0]][action[1]] = self.opp_colour()
-
                     self.make_move()
 
         return False
 
     def make_move(self):
-        """Makes a random move from the available pool of choices. If it can
-        swap, chooses to do so 50% of the time.
         """
-
-        # print(f"{self.colour} making move")
+        ~~~~~ TBD ~~~~~
+        
+        If it can swap, chooses to do so 50% of the time.
+        """
         if self.colour == "B" and self.turn_count == 0:
             if choice([0, 1]) == 1:
                 self.s.sendall(bytes("SWAP\n", "utf-8"))
-            else:
-                # same as below
-                choices = []
-                for i in range(self.board_size):
-                    for j in range(self.board_size):
-                        if self.board[i][j] == 0:
-                            choices.append((i, j))
-                pos = choice(choices)
-                self.s.sendall(bytes(f"{pos[0]},{pos[1]}\n", "utf-8"))
-                self.board[pos[0]][pos[1]] = self.colour
-        else:
-            choices = []
-            for i in range(self.board_size):
-                for j in range(self.board_size):
-                    if self.board[i][j] == 0:
-                        choices.append((i, j))
-            pos = choice(choices)
+                self.turn_count += 1
+                return
 
-            self.s.sendall(bytes(f"{pos[0]},{pos[1]}\n", "utf-8"))
-            self.board[pos[0]][pos[1]] = self.colour
+        # Could possibly filter out with NumPy and avoid recreating everything
+        choices = []
+        for i in range(self.board_size):
+            for j in range(self.board_size):
+                if self.board[i][j] == 0:
+                    choices.append((i, j))
+        move = choice(choices)
+
+        self.s.sendall(bytes(f"{move[0]},{move[1]}\n", "utf-8"))
+        self.board[move[0]][move[1]] = self.colour
         self.turn_count += 1
 
     def opp_colour(self):
-        """Returns the char representation of the colour opposite to the
+        """
+        Returns the char representation of the colour opposite to the
         current one.
         """
         if self.colour == "R":
@@ -117,6 +115,6 @@ class NaiveAgent():
             return "None"
 
 
-if (__name__ == "__main__"):
-    agent = NaiveAgent()
+if __name__ == "__main__":
+    agent = Agent14()
     agent.run()
