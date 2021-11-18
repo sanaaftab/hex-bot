@@ -90,7 +90,13 @@ class Agent14:
                 self.turn_count += 1
                 return
 
-        # Could possibly filter out with NumPy and avoid recreating everything
+        """
+        We could create a new object that is the board table, which will act as
+        a universal table that the agent can read from and write to. This table
+        can be a set for faster read/write operations, and hold the real time
+        state of the **available** board, so we no longer need to recreate the
+        board to find the possible moves.
+        """
         choices = []
         for i in range(self.board_size):
             for j in range(self.board_size):
