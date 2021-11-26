@@ -7,9 +7,9 @@ def main():
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
-        while (True):
+        while True:
             pass
 
 
-if (__name__ == "__main__"):
+if __name__ == "__main__":
     main()

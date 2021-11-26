@@ -6,7 +6,7 @@ from Colour import Colour
 import shlex
 
 
-class Protocol():
+class Protocol:
     """Static class that handles protocol communication between engine and
     agents. Uses a TCP socket.
     """
@@ -31,11 +31,7 @@ class Protocol():
 
     @staticmethod
     def accept_connection(
-        run_s,
-        name,
-        timeout_ns=30*10**9,
-        silent=True,
-        verbose=False
+        run_s, name, timeout_ns=30 * 10 ** 9, silent=True, verbose=False
     ):
         """Starts a subprocess with the specified string then waits for the
         new process to connect to the socket. Returns True if the connection
@@ -43,7 +39,7 @@ class Protocol():
         """
 
         # separate run_s into a list of arguments to be used in a linux shell
-        if (platform != "win32"):
+        if platform != "win32":
             run_s = shlex.split(run_s)
 
         # determine the colour of the new agent
@@ -57,7 +53,7 @@ class Protocol():
         # whether to throw out all output of the agent
         # used to ease the screen clutter during the tournament
         output = stdout
-        if (silent):
+        if silent:
             output = subprocess.DEVNULL
 
         # start the agent
@@ -65,64 +61,61 @@ class Protocol():
 
         # wait for a connection
         try:
-            Protocol.s.settimeout(timeout_ns/10**9)
+            Protocol.s.settimeout(timeout_ns / 10 ** 9)
             conn, addr = Protocol.s.accept()
             Protocol.s.settimeout(socket.getdefaulttimeout())
             if verbose:
                 print(f"Connected {name} at {addr}")
         except socket.timeout:
             conn, addr = None, None
-            if (verbose):
+            if verbose:
                 print(f"{name} never connected.")
 
         # set up associated arguments
-        Protocol.sockets[colour]['name'] = name
-        Protocol.sockets[colour]['thread'] = t
-        Protocol.sockets[colour]['conn'] = conn
-        Protocol.sockets[colour]['addr'] = addr
+        Protocol.sockets[colour]["name"] = name
+        Protocol.sockets[colour]["thread"] = t
+        Protocol.sockets[colour]["conn"] = conn
+        Protocol.sockets[colour]["addr"] = addr
 
         return conn is not None
 
     @staticmethod
-    def get_message(colour, timeout_ns=30*10**9, verbose=False):
+    def get_message(colour, timeout_ns=30 * 10 ** 9, verbose=False):
         """Waits for a message from the given colour agent for the specified
         length of time. Returns the text and the associated wait time.
         """
 
         try:
-            Protocol.sockets[colour]['conn'].settimeout(timeout_ns/10**9)
+            Protocol.sockets[colour]["conn"].settimeout(timeout_ns / 10 ** 9)
             move_time = time_ns()
-            data = Protocol.sockets[colour]['conn'].recv(1024)
+            data = Protocol.sockets[colour]["conn"].recv(1024)
             move_time = time_ns() - move_time
-            Protocol.sockets[colour]['conn'].settimeout(
-                socket.getdefaulttimeout()
-            )
+            Protocol.sockets[colour]["conn"].settimeout(socket.getdefaulttimeout())
 
         except socket.timeout:
             if verbose:
                 print(
-                    f"{Protocol.sockets[colour]['name']} timed out. " +
-                    "Nothing received."
+                    f"{Protocol.sockets[colour]['name']} timed out. "
+                    + "Nothing received."
                 )
             return ("NO MESSAGE", -1)
         except ConnectionResetError:
             if verbose:
-                print(
-                    f"{Protocol.sockets[colour]['name']} disconnected early.")
+                print(f"{Protocol.sockets[colour]['name']} disconnected early.")
             return ("NO MESSAGE", -1)
         except Exception:
             if verbose:
                 print(
-                    f"{Protocol.sockets[colour]['name']} socket " +
-                    "ended unexpectedly."
+                    f"{Protocol.sockets[colour]['name']} socket "
+                    + "ended unexpectedly."
                 )
             return ("NO MESSAGE", -1)
 
         if verbose:
             print(
-                f"Received {data.decode('utf-8').strip()} from " +
-                f"{Protocol.sockets[colour]['name']} in " +
-                f"~{int(move_time/10**4)/10**5}s."
+                f"Received {data.decode('utf-8').strip()} from "
+                + f"{Protocol.sockets[colour]['name']} in "
+                + f"~{int(move_time/10**4)/10**5}s."
             )
 
         return (data.decode("utf-8"), move_time)
@@ -132,23 +125,25 @@ class Protocol():
         """Sends the specified message to the specified colour agent."""
 
         try:
-            Protocol.sockets[colour]['conn'].sendall(bytes(message, "utf-8"))
+            Protocol.sockets[colour]["conn"].sendall(bytes(message, "utf-8"))
             if verbose:
                 print("Sent", message, end="")
 
         except Exception:
             if verbose:
                 print(
-                    f"Failed to send {message.strip()} to " +
-                    f"{Protocol.sockets[colour]['name']}."
+                    f"Failed to send {message.strip()} to "
+                    + f"{Protocol.sockets[colour]['name']}."
                 )
 
     @staticmethod
     def swap():
         """Switches the colours of the two agents."""
 
-        Protocol.sockets[Colour.RED], Protocol.sockets[Colour.BLUE] = \
-            Protocol.sockets[Colour.BLUE], Protocol.sockets[Colour.RED]
+        Protocol.sockets[Colour.RED], Protocol.sockets[Colour.BLUE] = (
+            Protocol.sockets[Colour.BLUE],
+            Protocol.sockets[Colour.RED],
+        )
 
     @staticmethod
     def close(kill_children=True, verbose=False):
@@ -160,46 +155,39 @@ class Protocol():
         # close sockets and agents
         for colour in Colour:
             x = Protocol.sockets[colour]
-            if (len(x.keys()) == 0):
+            if len(x.keys()) == 0:
                 continue
 
             try:
-                if (kill_children):
-                    x['thread'].kill()
+                if kill_children:
+                    x["thread"].kill()
                 else:
-                    x['thread'].wait()
+                    x["thread"].wait()
             except Exception as e:
-                if (verbose):
+                if verbose:
                     print(
-                        f"Couldn't close {x['name']} " +
-                        f"thread. Exception raised: {e}"
+                        f"Couldn't close {x['name']} "
+                        + f"thread. Exception raised: {e}"
                     )
 
             try:
-                x['conn'].close()
-                if (verbose):
-                    print(
-                        f"Closed {x['name']} at {x['addr']}"
-                    )
+                x["conn"].close()
+                if verbose:
+                    print(f"Closed {x['name']} at {x['addr']}")
             except Exception:
-                if (verbose):
-                    print(
-                        f"{x['name']} connection was already closed.")
+                if verbose:
+                    print(f"{x['name']} connection was already closed.")
 
         # close server
         try:
             Protocol.s.close()
         except AttributeError:
-            if (verbose):
+            if verbose:
                 print("Socket was not open.")
 
 
 if __name__ == "__main__":
-    commands = [
-        "echo Hello 1",
-        "echo Hello 2",
-        "python agents/NaiveAgent.py"
-    ]
+    commands = ["echo Hello 1", "echo Hello 2", "python agents/NaiveAgent.py"]
 
     Protocol.start()
 

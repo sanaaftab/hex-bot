@@ -11,11 +11,11 @@ class EndState(Enum):
     def get_text(state):
         """Returns the name of the state as a string."""
 
-        if (state == EndState.WIN):
+        if state == EndState.WIN:
             return "Win"
-        elif (state == EndState.TIMEOUT):
+        elif state == EndState.TIMEOUT:
             return "Timeout"
-        elif (state == EndState.BAD_MOVE):
+        elif state == EndState.BAD_MOVE:
             return "Illegal move"
         else:
             return "None"

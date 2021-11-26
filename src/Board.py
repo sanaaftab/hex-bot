@@ -27,7 +27,7 @@ class Board:
 
         b = Board(board_size=board_size)
 
-        if (bnf):
+        if bnf:
             lines = string_input.split(",")
             for i, line in enumerate(lines):
                 for j, char in enumerate(line):
@@ -50,17 +50,21 @@ class Board:
         # for all top tiles, check if they connect to bottom
         for idx in range(self._board_size):
             tile = self._tiles[0][idx]
-            if (not tile.is_visited() and
-                tile.get_colour() == Colour.RED and
-                    self._winner is None):
+            if (
+                not tile.is_visited()
+                and tile.get_colour() == Colour.RED
+                and self._winner is None
+            ):
                 self.DFS_colour(0, idx, Colour.RED)
         # Blue
         # for all left tiles, check if they connect to right
         for idx in range(self._board_size):
             tile = self._tiles[idx][0]
-            if (not tile.is_visited() and
-                tile.get_colour() == Colour.BLUE and
-                    self._winner is None):
+            if (
+                not tile.is_visited()
+                and tile.get_colour() == Colour.BLUE
+                and self._winner is None
+            ):
                 self.DFS_colour(idx, 0, Colour.BLUE)
 
         # un-visit tiles
@@ -83,28 +87,31 @@ class Board:
         self._tiles[x][y].visit()
 
         # win conditions
-        if (colour == Colour.RED):
-            if (x == self._board_size-1):
+        if colour == Colour.RED:
+            if x == self._board_size - 1:
                 self._winner = colour
-        elif (colour == Colour.BLUE):
-            if (y == self._board_size-1):
+        elif colour == Colour.BLUE:
+            if y == self._board_size - 1:
                 self._winner = colour
         else:
             return
 
         # end condition
-        if (self._winner is not None):
+        if self._winner is not None:
             return
 
         # visit neighbours
         for idx in range(Tile.NEIGHBOUR_COUNT):
             x_n = x + Tile.I_DISPLACEMENTS[idx]
             y_n = y + Tile.J_DISPLACEMENTS[idx]
-            if (x_n >= 0 and x_n < self._board_size and
-                    y_n >= 0 and y_n < self._board_size):
+            if (
+                x_n >= 0
+                and x_n < self._board_size
+                and y_n >= 0
+                and y_n < self._board_size
+            ):
                 neighbour = self._tiles[x_n][y_n]
-                if (not neighbour.is_visited() and
-                        neighbour.get_colour() == colour):
+                if not neighbour.is_visited() and neighbour.get_colour() == colour:
                     self.DFS_colour(x_n, y_n, colour)
 
     def print_board(self, bnf=True):
@@ -113,7 +120,7 @@ class Board:
         """
 
         output = ""
-        if (bnf):
+        if bnf:
             for line in self._tiles:
                 for tile in line:
                     output += Colour.get_char(tile.get_colour())
@@ -143,11 +150,12 @@ class Board:
         self._tiles[x][y].set_colour(colour)
 
 
-if (__name__ == "__main__"):
+if __name__ == "__main__":
     b = Board.from_string(
-        "0R000B00000,0R000000000,0RBB0000000,0R000000000,0R00B000000," +
-        "0R000BB0000,0R0000B0000,0R00000B000,0R000000B00,0R0000000B0," +
-        "0R00000000B", bnf=True
+        "0R000B00000,0R000000000,0RBB0000000,0R000000000,0R00B000000,"
+        + "0R000BB0000,0R0000B0000,0R00000B000,0R000000B00,0R0000000B0,"
+        + "0R00000000B",
+        bnf=True,
     )
     b.print_board(bnf=False)
     print(b.has_ended(), b.get_winner())

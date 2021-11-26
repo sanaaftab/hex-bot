@@ -11,9 +11,9 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
 
-        too_long_message = bytes("".join(
-            ["X" for i in range(MAX_SIZE_MESSAGE_B * 2)]
-        ), "utf-8")
+        too_long_message = bytes(
+            "".join(["X" for i in range(MAX_SIZE_MESSAGE_B * 2)]), "utf-8"
+        )
 
         s.sendall(too_long_message)
         sleep(1)

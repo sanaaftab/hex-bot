@@ -1,4 +1,4 @@
-class Move():
+class Move:
     """Represents a player move in a turn of Hex."""
 
     def __init__(self, colour, x=-1, y=-1):
@@ -18,10 +18,9 @@ class Move():
         turn = game.get_turn()
 
         # out of bounds
-        if (self.x < 0 or self.x >= b.get_size() or
-                self.y < 0 or self.y >= b.get_size()):
+        if self.x < 0 or self.x >= b.get_size() or self.y < 0 or self.y >= b.get_size():
             # allowed if it is a swap move
-            if (self.x == -1 and self.y == -1 and turn == 2):
+            if self.x == -1 and self.y == -1 and turn == 2:
                 return True
 
             return False

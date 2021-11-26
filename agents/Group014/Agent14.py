@@ -1,17 +1,20 @@
-#!/f/Python/Python39/python
+#!/home/muffin/.pyenv/shims/python
 import socket
 from random import choice
 from time import sleep
+import numpy as np
 
 
 class Agent14:
-    """
-    
-    ~~~~~ TBD ~~~~~
+    """Represents the agent for Group14."""
 
-    """
     HOST = "127.0.0.1"
     PORT = 1234
+    color_dict = {
+        "None": 0,
+        "R": 1,
+        "B": -1,
+    }
 
     def __init__(self, board_size=11):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,61 +30,59 @@ class Agent14:
 
         while True:
             data = self.s.recv(1024)
-            # print(f"{self.colour} {data.decode('utf-8')}", end="")
             if not data or self.interpret_data(data):
                 break
-        # print(f"Naive agent {self.colour} terminated")
 
     def interpret_data(self, data):
         """
         Checks the type of message and responds accordingly.
 
+        :param data: The binary data string received from the game engine.
         :returns: True if the game ended, False otherwise.
         """
-        # data = 'START;2;R\n' -- strip \n --> 'START;2;R'
-        messages = data.decode("utf-8").strip().split("\n")
-        # messages = [['START', 2, 'R'], ['']] ... why?
-        messages = [x.split(";") for x in messages]
+        message = data.decode("utf-8").strip().split("\n")[0].split(";")
 
-        for s in messages:
-            if s[0] == "START":
-                if int(s[1]) <= 0:
-                    print(f"Invalid board size provided: {s[1]}")
-                    return True
-                self.board_size = int(s[1])
-                if s[2] not in ["R", "B"]:
-                    print(f"Invalid player colour provided: {s[2]}")
-                    return True
-                self.colour = s[2]
+        if message[0] == "START":
+            if int(message[1]) <= 0:
+                print(f"Invalid board size provided: {message[1]}")
+                return True
+            self.board_size = int(message[1])
+            if message[2] not in ["R", "B"]:
+                print(f"Invalid player colour provided: {message[2]}")
+                return True
+            self.colour = message[2]
 
-                self.board = [[0] * self.board_size for _ in range(self.board_size)]
-                if self.colour == "R":
-                    self.make_move()
+            self.board = np.zeros((self.board_size, self.board_size), dtype="int32")
+            if self.colour == "R":
+                self.make_move()
 
-            elif s[0] == "END":
+        elif message[0] == "END":
+            return True
+
+        elif message[0] == "CHANGE":
+            if message[3] == "END":
                 return True
 
-            elif s[0] == "CHANGE":
-                if s[3] == "END":
-                    return True
-
-                elif s[1] == "SWAP":
-                    self.colour = self.opp_colour()
-                    if s[3] == self.colour:
-                        self.make_move()
-
-                elif s[3] == self.colour:
-                    # s[1] = 2,3 -- split(',') --> [2, 3]
-                    action = [int(x) for x in s[1].split(",")]
-                    self.board[action[0]][action[1]] = self.opp_colour()
+            elif message[1] == "SWAP":
+                self.colour = self.opp_colour()
+                if message[3] == self.colour:
                     self.make_move()
+
+            elif message[3] == self.colour:
+                # If the last part of the message is this agents color
+                # this means that the opposing agent made a move, hence
+                # ... = self.opp_colour()
+                action = [int(x) for x in message[1].split(",")]
+                self.board[action[0]][action[1]] = self.color_dict[self.opp_colour()]
+                self.make_move()
 
         return False
 
     def make_move(self):
         """
-        ~~~~~ TBD ~~~~~
-        
+        Gets all available moves from the current state of the board and randomly
+        chooses the next move to make from the available pool.
+
         If it can swap, chooses to do so 50% of the time.
         """
         if self.colour == "B" and self.turn_count == 0:
@@ -90,28 +91,20 @@ class Agent14:
                 self.turn_count += 1
                 return
 
-        """
-        We could create a new object that is the board table, which will act as
-        a universal table that the agent can read from and write to. This table
-        can be a set for faster read/write operations, and hold the real time
-        state of the **available** board, so we no longer need to recreate the
-        board to find the possible moves.
-        """
-        choices = []
-        for i in range(self.board_size):
-            for j in range(self.board_size):
-                if self.board[i][j] == 0:
-                    choices.append((i, j))
-        move = choice(choices)
+        # Could possibly filter out with NumPy and avoid recreating everything.
+        # Filter and return the (x, y) indices of all elements that are equal to 0.
+        choices = np.where(self.board == 0)
+        move = choice(np.column_stack((choices[0], choices[1])))
 
         self.s.sendall(bytes(f"{move[0]},{move[1]}\n", "utf-8"))
-        self.board[move[0]][move[1]] = self.colour
+        self.board[move[0]][move[1]] = self.color_dict[self.colour]
         self.turn_count += 1
 
     def opp_colour(self):
         """
-        Returns the char representation of the colour opposite to the
-        current one.
+        Returns the char representation of the colour opposite to the current one.
+
+        :returns: 'R' for red, 'B' for blue, or 'None' otherwise.
         """
         if self.colour == "R":
             return "B"
@@ -119,6 +112,55 @@ class Agent14:
             return "R"
         else:
             return "None"
+
+    def minimax(self, current_position, depth, alpha, beta, max):
+        """
+        Applies that minimax algorithm with alpha-beta pruning to the current state of,
+        the board and returns the static value of the move.
+
+        NOTE: This method does not take weights into account. All moves are considered
+            equal.
+
+        :param current_position: The current position on the board.
+        :param depth: How deep to traverse the tree, or how many moves to look ahead.
+        :param alpha: The alpha (max) value for alpha-beta pruning.
+        :param beta: The beta (min) value for alpha-beta pruning.
+        :param max: True to represent maximising players turn, or False to represent
+            the minimising players turn.
+        :returns: The static value of the best move to make based on the current state
+            of the current_position.
+        """
+        if depth == 0:
+            return self.get_position_value()
+
+        if max:
+            current_max = float("-inf")
+            for child in current_position:
+                current_evaluation = self.minimax(child, depth - 1, alpha, beta, False)
+                current_max = max(current_max, current_evaluation)
+                alpha = max(alpha, current_evaluation)
+                if beta <= alpha:
+                    break
+            return current_max
+        else:
+            current_min = float("inf")
+            for child in current_position:
+                current_evaluation = self.minimax(child, depth - 1, alpha, beta, True)
+                current_min = max(current_min, current_evaluation)
+                beta = max(beta, current_evaluation)
+                if beta <= alpha:
+                    break
+            return current_min
+
+    def get_position_value(position):
+        """
+        Get the value of the current position based on the state of the board.
+        This is basically the heuristic of the current position.
+
+        :param position: The position on the board being evaluated.
+        :returns: The static value of the current position.
+        """
+        return 0
 
 
 if __name__ == "__main__":

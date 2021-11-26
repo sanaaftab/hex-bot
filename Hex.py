@@ -40,7 +40,7 @@ def extract_agents(arguments):
     agents = []
     other_args = []
     for argument in arguments:
-        if ("a=" in argument or "-agent" in argument):
+        if "a=" in argument or "-agent" in argument:
             try:
                 _, _ = argument.split("=")[1].split(";")
                 agents.append(f'"{argument}"')
@@ -57,7 +57,7 @@ def get_main_cmd():
     """
 
     main_cmd = "python"
-    if (platform != "win32"):
+    if platform != "win32":
         main_cmd += "3"
 
     main_path = sep.join(realpath(__file__).split(sep)[:-1])
@@ -76,15 +76,11 @@ def main():
     if (len(agents)) > 2:
         print("ERROR: Too many agents specified. Aborted.")
         return
-    elif (len(agents) != len(set(agents))):
+    elif len(agents) != len(set(agents)):
         print("ERROR: Agent strings must be unique. Aborted.")
 
-    cmd = (
-        get_main_cmd() + " " +
-        " ".join(arguments) + " " +
-        " ".join(agents)
-    )
-    if (platform != "win32"):
+    cmd = get_main_cmd() + " " + " ".join(arguments) + " " + " ".join(agents)
+    if platform != "win32":
         cmd = shlex.split(cmd)
 
     subprocess.run(cmd)
