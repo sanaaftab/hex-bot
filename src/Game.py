@@ -24,8 +24,8 @@ class Game:
     def __init__(
         self,
         board_size=11,
-        player1={"name": "Alice", "run string": "python3 agents/NaiveAgent.py"},
-        player2={"name": "Bob", "run string": "python3 agents/NaiveAgent.py"},
+        player1={"name": "Alice", "run string": "python3 agents/DefaultAgents/NaiveAgent.py"},
+        player2={"name": "Bob", "run string": "python3 agents/DefaultAgents/NaiveAgent.py"},
         verbose=False,
         log=True,
         print_protocol=False,
