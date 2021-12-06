@@ -110,9 +110,10 @@ class Agent14:
         # Could possibly filter out with NumPy and avoid recreating everything.
         # Filter and return the (x, y) indices of all elements that are equal to 0.
         choices_x, choices_y = np.where(self.board == 0)
-        # move = self.minimax(self.board, self.thinking_time, float("-inf"), float("inf"), self.colour == "R", np.array((choices_x, choices_y)).T, self.last_move_made_by)
-
-        move = choice(np.array((choices_x, choices_y)).T)
+        
+        move = self.minimax_wrap(self.board)
+        
+        #move = choice(np.array((choices_x, choices_y)).T)
         # Needs to sleep for now as it replies too fast and the socket might skip the message
         sleep(1 * 10 ** -3)
         self.s.sendall(bytes(f"{move[0]},{move[1]}\n", "utf-8"))
@@ -133,8 +134,20 @@ class Agent14:
         else:
             return "None"
 
+    def minimax_wrap(board)
+        max_val = float("-inf")
+        best_move = None
+        prev_colour = self.opp_colour()
+        for x,y in board:
+            if board[x][y] == 0:
+                value = minimax(board, self.thinking_time, float("-inf"), float("inf"), True, prev_colour)
+                if value > max_value:
+                    max_value = value
+                    best_move = (x,y)
+        return best_move
+                
     def minimax(
-        self, board, depth, alpha, beta, maximising, available_choices, last_move
+        self, board, depth, alpha, beta, maximising, last_move
     ):
         """
         Applies that minimax algorithm with alpha-beta pruning to the current state of,
@@ -156,54 +169,53 @@ class Agent14:
         :returns: The static value of the best move to make based on the current state
             of the board.
         """
-        if len(available_choices) < depth:
-            depth = len(available_choices)
-        if depth == 0 or len(available_choices) == 1:
+        
+        if depth == 0:
             return self.get_position_value()
 
         next_move = "B" if last_move == "R" else "R"
-        INDEX = 0
+        #INDEX = 0
 
         if maximising:
             current_max = float("-inf")
             for x, y in board:
-                board = deepcopy(self.board)
-                board[x][y] = self.colour_dict[next_move] #colour_dict is the player making the next move
-                current_evaluation = self.minimax(
-                    board,
-                    depth - 1,
-                    alpha,
-                    beta,
-                    False,
-                    np.delete(available_choices, INDEX, 0),
-                    next_move,
-                )
-                INDEX += 1
-                board[x][y] = 0
-                current_max = max(current_max, current_evaluation)
-                alpha = max(alpha, current_evaluation)
-                if beta <= alpha:
-                    break
+                if self.board[x][y] == 0:
+                    board = deepcopy(self.board)
+                    board[x][y] = self.colour_dict[next_move] #colour_dict is the player making the next move
+                    
+                    current_evaluation = self.minimax(
+                        board,
+                        depth - 1,
+                        alpha,
+                        beta,
+                        False,
+                        next_move
+                    )
+                    #board[x][y] = 0
+                    current_max = max(current_max, current_evaluation)
+                    alpha = max(alpha, current_evaluation)
+                    if beta <= alpha:
+                        break
             return current_max
         else:
             current_min = float("inf")
-            for x, y in board:
-                board[x][y] = self.colour_dict[next_move]
-                current_evaluation = self.minimax(
-                    board,
-                    depth - 1,
-                    alpha,
-                    beta,
-                    True,
-                    np.delete(available_choices, INDEX, 0),
-                    next_move,
-                )
-                INDEX += 1
-                board[x][y] = 0
-                current_min = min(current_min, current_evaluation)
-                beta = min(beta, current_evaluation)
-                if beta <= alpha:
-                    break
+            for x, y in self.board:
+                if self.board[x][y] == 0:
+                    board = deepcopy(self.board)
+                    board[x][y] = self.colour_dict[next_move]
+                    current_evaluation = self.minimax(
+                        board,
+                        depth - 1,
+                        alpha,
+                        beta,
+                        True,
+                        next_move
+                    )
+                    #board[x][y] = 0
+                    current_min = min(current_min, current_evaluation)
+                    beta = min(beta, current_evaluation)
+                    if beta <= alpha:
+                        break
             return current_min
 
     def get_position_value(self):
