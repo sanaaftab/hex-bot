@@ -156,7 +156,7 @@ class Agent14:
         :returns: The static value of the best move to make based on the current state
             of the board.
         """
-        if len(available_choices) > depth:
+        if len(available_choices) < depth:
             depth = len(available_choices)
         if depth == 0 or len(available_choices) == 1:
             return self.get_position_value()
@@ -166,9 +166,9 @@ class Agent14:
 
         if maximising:
             current_max = float("-inf")
-            for x, y in available_choices:
+            for x, y in board:
                 board = deepcopy(self.board)
-                board[x][y] = self.colour_dict[next_move]
+                board[x][y] = self.colour_dict[next_move] #colour_dict is the player making the next move
                 current_evaluation = self.minimax(
                     board,
                     depth - 1,
@@ -187,7 +187,7 @@ class Agent14:
             return current_max
         else:
             current_min = float("inf")
-            for x, y in available_choices:
+            for x, y in board:
                 board[x][y] = self.colour_dict[next_move]
                 current_evaluation = self.minimax(
                     board,
@@ -200,8 +200,8 @@ class Agent14:
                 )
                 INDEX += 1
                 board[x][y] = 0
-                current_min = max(current_min, current_evaluation)
-                beta = max(beta, current_evaluation)
+                current_min = min(current_min, current_evaluation)
+                beta = min(beta, current_evaluation)
                 if beta <= alpha:
                     break
             return current_min
