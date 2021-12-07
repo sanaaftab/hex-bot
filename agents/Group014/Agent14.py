@@ -1,10 +1,6 @@
-#!/home/muffin/.pyenv/shims/python
-import numpy as np
 import socket
 
-from copy import deepcopy
-from random import choice
-from time import sleep, time
+from time import time
 
 
 class Agent14:
@@ -17,14 +13,12 @@ class Agent14:
         "R": 1,
         "B": -1,
     }
-    last_move_made_by = "R"
 
     # time left (%) -> depth level map
-    # 100% - 65% of time left --> 3 levels
-    # 64% - 30% of time left --> 2 levels
-    # 29% - 0% of time left --> 1 level
+    # 100% - 65% of time left --> 2 levels
+    # 64% - 0% of time left --> 1 level
     TIME_LEFT = 300  # seconds
-    thinking_time = 3
+    thinking_time = 2
 
     def __init__(self, board_size=11):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -63,11 +57,14 @@ class Agent14:
                 return True
             self.colour = message[2]
 
-            self.board = np.zeros((self.board_size, self.board_size), dtype="int32")
-            # self.board = [[0] * self.board_size for _ in range(self.board_size)]
+            # Create a n*n (value, weight) board
+            self.board = []
+            for x in range(self.board_size):
+                self.board.append([])
+                for y in range(self.board_size):
+                    self.board[x].append([0, 9 - self.distance_between_points((self.board_size // 2, self.board_size // 2), (x, y))])
             if self.colour == "R":
                 self.make_move()
-            self.last_move_made_by = message[2]
 
         elif message[0] == "END":
             return True
@@ -82,13 +79,15 @@ class Agent14:
                     self.make_move()
 
             elif message[3] == self.colour:
-                # If the last part of the message is this agents color
-                # this means that the opposing agent made a move, hence
-                # ... = self.opp_colour()
-                action = [int(x) for x in message[1].split(",")]
-                self.board[action[0]][action[1]] = self.colour_dict[self.opp_colour()]
+                opp_move = [int(x) for x in message[1].split(",")]
+                self.board[opp_move[0]][opp_move[1]][0] = self.colour_dict[self.opp_colour()]
+                self.board[opp_move[0]][opp_move[1]][1] = float("-inf")
+                # Update the heatmap
+                for move_x, move_y in self.neighbours(opp_move):
+                    self.board[move_x][move_y][1] -= 2
+                for move_x, move_y in self.bridges(opp_move):
+                    self.board[move_x][move_y][1] -= 3
                 self.make_move()
-            self.last_move_made_by = message[3]
 
         self.TIME_LEFT -= int((time() - current_time))
         # Percentage = (time_left / 300) * 100
@@ -107,19 +106,17 @@ class Agent14:
             self.turn_count += 1
             return
 
-        # Could possibly filter out with NumPy and avoid recreating everything.
-        # Filter and return the (x, y) indices of all elements that are equal to 0.
-        choices_x, choices_y = np.where(self.board == 0)
-        
-        move = self.minimax_wrap(self.board)
-        
-        #move = choice(np.array((choices_x, choices_y)).T)
-        # Needs to sleep for now as it replies too fast and the socket might skip the message
-        sleep(1 * 10 ** -3)
+        move = self.minimax_wrap()
+        self.board[move[0]][move[1]][1] = float("inf")
+        # Update the heatmap
+        for move_x, move_y in self.neighbours(move):
+            self.board[move_x][move_y][1] += 4
+        for move_x, move_y in self.bridges(move):
+            self.board[move_x][move_y][1] += 5
+
         self.s.sendall(bytes(f"{move[0]},{move[1]}\n", "utf-8"))
-        self.board[move[0]][move[1]] = self.colour_dict[self.colour]
+        self.board[move[0]][move[1]][0] = self.colour_dict[self.colour]
         self.turn_count += 1
-        self.last_move_made_by = self.colour
 
     def opp_colour(self):
         """
@@ -134,99 +131,188 @@ class Agent14:
         else:
             return "None"
 
-    def minimax_wrap(board)
+    def minimax_wrap(self):
         max_val = float("-inf")
         best_move = None
-        prev_colour = self.opp_colour()
-        for x,y in board:
-            if board[x][y] == 0:
-                value = minimax(board, self.thinking_time, float("-inf"), float("inf"), True, prev_colour)
-                if value > max_value:
-                    max_value = value
-                    best_move = (x,y)
+        # prev_colour = self.opp_colour()
+        # for x in range(self.board_size):
+        #     for y in range(self.board_size):
+        #         if self.is_position_valid_and_available((x, y), self.board_size) and self.board[x][y][0] == 0:
+        #             value = self.minimax(self.thinking_time, float("-inf"), float("inf"), True, prev_colour, x, y)
+        #             if value > max_val:
+        #                 max_val = value
+        #                 best_move = (x, y)
+        for i in self.board:
+            print()
+            for j in i:
+                print(j[1], ", ", end="")
+        print()
+        print("------------------------------------------")
+        for x in range(self.board_size):
+            for y in range(self.board_size):
+                if self.board[x][y][0] == 0:
+                    value = self.board[x][y][1]
+                    if value > max_val:
+                        max_val = value
+                        best_move = (x, y)
         return best_move
-                
+
     def minimax(
-        self, board, depth, alpha, beta, maximising, last_move
+        self, depth, alpha, beta, maximising, last_move, x_coor, y_coor
     ):
         """
-        Applies that minimax algorithm with alpha-beta pruning to the current state of,
+        Applies that minimax algorithm with alpha-beta pruning to the current state of
         the board and returns the static value of the move.
 
-        NOTE: This method does not take weights into account. All moves are considered
-            equal.
-
-        :param board: The current state of the board.
         :param depth: How deep to traverse the tree, or how many moves to look ahead.
         :param alpha: The alpha (max) value for alpha-beta pruning.
         :param beta: The beta (min) value for alpha-beta pruning.
         :param maximising: True to represent maximising players turn, or False to
             represent the minimising players turn.
-        :param available_choices: A list with all the available moves, represented
-            as a list of (x: int, y: int) tuples.
         :param last_move: The color of the player who has made the last move. This is
             used for the heuristic.
+        :param x_coor: The x coordinate of the position currently under investigation.
+        :param y_coor: The y coordinate of the position currently under investigation.
+
         :returns: The static value of the best move to make based on the current state
             of the board.
         """
-        
         if depth == 0:
-            return self.get_position_value()
+            return self.get_position_value(x_coor, y_coor)
 
         next_move = "B" if last_move == "R" else "R"
-        #INDEX = 0
-
         if maximising:
             current_max = float("-inf")
-            for x, y in board:
-                if self.board[x][y] == 0:
-                    board = deepcopy(self.board)
-                    board[x][y] = self.colour_dict[next_move] #colour_dict is the player making the next move
-                    
-                    current_evaluation = self.minimax(
-                        board,
-                        depth - 1,
-                        alpha,
-                        beta,
-                        False,
-                        next_move
-                    )
-                    #board[x][y] = 0
-                    current_max = max(current_max, current_evaluation)
-                    alpha = max(alpha, current_evaluation)
-                    if beta <= alpha:
-                        break
+            for x in range(self.board_size):
+                for y in range(self.board_size):
+                    if self.board[x][y][0] == 0:
+                        self.board[x][y][0] = self.colour_dict[next_move]
+                        current_evaluation = self.minimax(
+                            depth - 1,
+                            alpha,
+                            beta,
+                            False,
+                            next_move,
+                            x,
+                            y,
+                        )
+                        self.board[x][y][0] = 0
+                        current_max = max(current_max, current_evaluation)
+                        alpha = max(alpha, current_evaluation)
+                        if beta <= alpha:
+                            break
             return current_max
         else:
             current_min = float("inf")
-            for x, y in self.board:
-                if self.board[x][y] == 0:
-                    board = deepcopy(self.board)
-                    board[x][y] = self.colour_dict[next_move]
-                    current_evaluation = self.minimax(
-                        board,
-                        depth - 1,
-                        alpha,
-                        beta,
-                        True,
-                        next_move
-                    )
-                    #board[x][y] = 0
-                    current_min = min(current_min, current_evaluation)
-                    beta = min(beta, current_evaluation)
-                    if beta <= alpha:
-                        break
+            for x in range(self.board_size):
+                for y in range(self.board_size):
+                    if self.board[x][y][0] == 0:
+                        self.board[x][y][0] = self.colour_dict[next_move]
+                        current_evaluation = self.minimax(
+                            depth - 1,
+                            alpha,
+                            beta,
+                            True,
+                            next_move,
+                            x,
+                            y,
+                        )
+                        self.board[x][y][0] = 0
+                        current_min = min(current_min, current_evaluation)
+                        beta = min(beta, current_evaluation)
+                        if beta <= alpha:
+                            break
             return current_min
 
-    def get_position_value(self):
+    def get_position_value(self, x, y):
         """
         Get the value of the current position based on the state of the board.
         This is basically the heuristic of the current position.
 
         :returns: The static value of the current position.
         """
-        # Heuristic can be, if Red made last move (won) 1, else -1
-        return self.colour_dict[self.last_move_made_by]
+        return self.board[x][y][1]
+
+    def is_position_valid(self, position):
+        """
+        Checks if the given (x, y) position given is valid and not occupied.
+
+        :param position: A tuple of the format (x: int, y: int), that represents the
+            position on the board under evaluation.
+
+        :returns: True if the position exists on the board, False otherwise.
+        """
+        try:
+            x = position[0]
+            y = position[1]
+            if x < 0 or x >= self.board_size or y < 0 or y >= self.board_size:
+                return False
+            return True
+        except Exception:
+            return False
+
+    def is_position_available(self, position):
+        return self.is_position_valid(position) and self.board[position[0]][position[1]][0] not in ["B", "R"]
+
+    def neighbours(self, position):
+        (x, y) = position
+        count = 0
+        neighbours_list = []
+        possible_positions = [(x-1, y), (x-1, y+1), (x, y-1), (x, y+1), (x+1, y-1), (x+1, y)]
+        for position in possible_positions:
+            if self.is_position_valid(position):
+                if self.is_position_available(position):
+                    neighbours_list.append(position)
+                elif self.board[position[0]][position[1]][0] == self.colour:
+                    count += 1
+                elif self.board[position[0]][position[1]][0] == self.opp_colour():
+                    count -= 1
+                # Avoid stone clusters (blobs)
+                if count >= 3:
+                    self.board[position[0]][position[1]][1] -= 10
+                elif count <= -3:
+                    self.board[position[0]][position[1]][1] += 10
+        return neighbours_list
+
+    def bridges(self, position):
+        (x, y) = position
+        bridge_list = []
+        possible_bridge_list = [(x+2, y-1), (x+1, y-2), (x+1, y+1), (x-1, y-1), (x-1, y+2), (x-2, y+1)]
+        for possition in possible_bridge_list:
+            if (self.is_position_valid(possition)):
+                bridge_list.append(possition)
+        return bridge_list
+
+    def distance_between_points(self, p1, p2):
+        y1, x1 = p1
+        y2, x2 = p2
+        du = x2 - x1
+        dv = (y2 + x2 // 2) - (y1 + x1 // 2)
+        return max(abs(du), abs(dv)) if ((du >= 0 and dv >= 0) or (du < 0 and dv < 0)) else abs(du) + abs(dv)
+
+    # def centerness(self, size, x, y):
+    #     score = 0
+    #     center = (size // 2, size // 2)
+    #     center_val = self.board[size // 2][size // 2]
+    #     if center_val != 0:
+    #         score += 50 * center_val
+    #         center_neighbours = self.neighbours(center, size)
+    #         # Number of red - number of blue
+    #         count = 0
+    #         for (x, y) in center_neighbours:
+    #             value = self.board[x][y][1]
+    #             score += 3 * value
+    #             if (value == self.colour):
+    #                 count += 1
+    #             elif (value == self.opp_colour()):
+    #                 count -= 1
+
+    #         # Don't want to continue clusters (blobs)
+    #         if count >= 4:
+    #             score -= 20
+    #         elif count <= -4:
+    #             score += 20
+    #     return score
 
     def get_minimax_depth_level(self, perc):
         """
@@ -236,8 +322,6 @@ class Agent14:
         :returns: 3 for a percentage level [65, 100], 2 for [30, 64], 1 otherwise.
         """
         if perc >= 65:
-            return 3
-        elif perc >= 30 and perc < 65:
             return 2
         else:
             return 1
