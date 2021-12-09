@@ -1,19 +1,19 @@
 import socket
 
 from time import time
-
+from copy import deepcopy
 
 class Agent14:
     """Represents the agent for Group14."""
 
     HOST = "127.0.0.1"
     PORT = 1234
+
     colour_dict = {
         "None": 0,
         "R": 1,
         "B": -1,
     }
-
     # time left (%) -> depth level map
     # 100% - 65% of time left --> 2 levels
     # 64% - 0% of time left --> 1 level
@@ -31,7 +31,6 @@ class Agent14:
 
     def run(self):
         """Reads data until it receives an END message or the socket closes."""
-
         while True:
             data = self.s.recv(1024)
             if not data or self.interpret_data(data):
@@ -64,7 +63,7 @@ class Agent14:
                 for y in range(self.board_size):
                     self.board[x].append([0, 9 - self.distance_between_points((self.board_size // 2, self.board_size // 2), (x, y))])
             if self.colour == "R":
-                self.make_move()
+                self.board = self.make_move(self.board)
 
         elif message[0] == "END":
             return True
@@ -76,53 +75,51 @@ class Agent14:
             elif message[1] == "SWAP":
                 self.colour = self.opp_colour()
                 if message[3] == self.colour:
-                    self.make_move()
+                    self.board = self.make_move(self.board)
 
             elif message[3] == self.colour:
                 opp_move = [int(x) for x in message[1].split(",")]
                 self.board[opp_move[0]][opp_move[1]][0] = self.colour_dict[self.opp_colour()]
                 self.board[opp_move[0]][opp_move[1]][1] = float("-inf")
-                # Update the heatmap
-                for move_x, move_y in self.neighbours(opp_move):
-                    self.board[move_x][move_y][1] -= 2
-                for move_x, move_y in self.bridges(opp_move):
-                    self.board[move_x][move_y][1] -= 3
-                self.make_move()
+                self.board = self.update_heatmap(self.board, opp_move)
+                self.board = self.make_move(self.board)
 
         self.TIME_LEFT -= int((time() - current_time))
         # Percentage = (time_left / 300) * 100
         self.thinking_time = self.get_minimax_depth_level(int(self.TIME_LEFT / 3))
         return False
 
-    def make_move(self):
+    def make_move(self, board):
         """
         Gets all available moves from the current state of the board and randomly
         chooses the next move to make from the available pool.
 
         If it can swap, chooses to do so.
+        
+        :param board: The board to update.
+        :returns: The updated board.
         """
         if self.colour == "B" and self.turn_count == 0:
             self.s.sendall(bytes("SWAP\n", "utf-8"))
             self.turn_count += 1
-            return
+            return board
 
         move = self.minimax_wrap()
-        self.board[move[0]][move[1]][1] = float("inf")
-        # Update the heatmap
-        for move_x, move_y in self.neighbours(move):
-            self.board[move_x][move_y][1] += 4
-        for move_x, move_y in self.bridges(move):
-            self.board[move_x][move_y][1] += 5
+
+        board[move[0]][move[1]][1] = float("inf")
+        board = self.update_heatmap(board, move)
 
         self.s.sendall(bytes(f"{move[0]},{move[1]}\n", "utf-8"))
-        self.board[move[0]][move[1]][0] = self.colour_dict[self.colour]
+        board[move[0]][move[1]][0] = self.colour_dict[self.colour]
         self.turn_count += 1
+
+        return board
 
     def opp_colour(self):
         """
         Returns the char representation of the colour opposite to the current one.
 
-        :returns: 'R' for red, 'B' for blue, or 'None' otherwise.
+        :returns: 'R' for red, 'B' for blue, 'None' otherwise.
         """
         if self.colour == "R":
             return "B"
@@ -131,34 +128,50 @@ class Agent14:
         else:
             return "None"
 
+    def update_heatmap(self, board, move, colour=None):
+        """
+        Updates the board weights and returns the updated board.
+
+        :param board: The board to update.
+        :param move: The move that has been made.
+        :param colour: The player that has made the move.
+        :returns: The updated board.
+        """
+        colour = colour if colour else self.colour
+
+        for move_x, move_y in self.neighbours(move):
+            board[move_x][move_y][1] = board[move_x][move_y][1] + 4 if colour == "R" else board[move_x][move_y][1] - 4
+        for move_x, move_y in self.bridges(move):
+            board[move_x][move_y][1] = board[move_x][move_y][1] + 5 if colour == "B" else board[move_x][move_y][1] - 5
+
+        if self.turn_count > 1:
+            longest_current_chain = self.get_longest_chain()
+            if longest_current_chain:
+                self.update_chain_neighbours(longest_current_chain[0], longest_current_chain[len(longest_current_chain) - 1], colour)
+        return board
+
     def minimax_wrap(self):
-        max_val = float("-inf")
+        val = float("-inf") if self.colour == "R" else float("inf")
         best_move = None
-        # prev_colour = self.opp_colour()
-        # for x in range(self.board_size):
-        #     for y in range(self.board_size):
-        #         if self.is_position_valid_and_available((x, y), self.board_size) and self.board[x][y][0] == 0:
-        #             value = self.minimax(self.thinking_time, float("-inf"), float("inf"), True, prev_colour, x, y)
-        #             if value > max_val:
-        #                 max_val = value
-        #                 best_move = (x, y)
-        for i in self.board:
-            print()
-            for j in i:
-                print(j[1], ", ", end="")
-        print()
-        print("------------------------------------------")
+        # for i in self.board:
+        #     print([x[1] for x in i])
+        # print("------------------------------------------")
         for x in range(self.board_size):
             for y in range(self.board_size):
                 if self.board[x][y][0] == 0:
-                    value = self.board[x][y][1]
-                    if value > max_val:
-                        max_val = value
-                        best_move = (x, y)
+                    value = self.minimax(self.board, self.thinking_time, float("-inf"), float("inf"), self.colour == "R", self.opp_colour(), x, y)
+                    if self.colour == "R":
+                        if value > val:
+                            val = value
+                            best_move = (x, y)
+                    elif self.colour == "B":
+                        if value < val:
+                            val = value
+                            best_move = (x, y)
         return best_move
 
     def minimax(
-        self, depth, alpha, beta, maximising, last_move, x_coor, y_coor
+        self, board, depth, alpha, beta, maximising, last_move, x_coor, y_coor
     ):
         """
         Applies that minimax algorithm with alpha-beta pruning to the current state of
@@ -177,7 +190,7 @@ class Agent14:
         :returns: The static value of the best move to make based on the current state
             of the board.
         """
-        if depth == 0:
+        if depth == 0 or self.is_board_full(board):
             return self.get_position_value(x_coor, y_coor)
 
         next_move = "B" if last_move == "R" else "R"
@@ -185,9 +198,12 @@ class Agent14:
             current_max = float("-inf")
             for x in range(self.board_size):
                 for y in range(self.board_size):
-                    if self.board[x][y][0] == 0:
-                        self.board[x][y][0] = self.colour_dict[next_move]
+                    if board[x][y][0] == 0:
+                        new_board = deepcopy(board)
+                        new_board[x][y][0] = self.colour_dict[next_move]
+                        new_board = self.update_heatmap(board, (x, y), next_move)
                         current_evaluation = self.minimax(
+                            new_board,
                             depth - 1,
                             alpha,
                             beta,
@@ -196,7 +212,6 @@ class Agent14:
                             x,
                             y,
                         )
-                        self.board[x][y][0] = 0
                         current_max = max(current_max, current_evaluation)
                         alpha = max(alpha, current_evaluation)
                         if beta <= alpha:
@@ -206,9 +221,12 @@ class Agent14:
             current_min = float("inf")
             for x in range(self.board_size):
                 for y in range(self.board_size):
-                    if self.board[x][y][0] == 0:
-                        self.board[x][y][0] = self.colour_dict[next_move]
+                    if board[x][y][0] == 0:
+                        new_board = deepcopy(board)
+                        new_board[x][y][0] = self.colour_dict[next_move]
+                        new_board = self.update_heatmap(board, (x, y), next_move)
                         current_evaluation = self.minimax(
+                            new_board,
                             depth - 1,
                             alpha,
                             beta,
@@ -217,7 +235,6 @@ class Agent14:
                             x,
                             y,
                         )
-                        self.board[x][y][0] = 0
                         current_min = min(current_min, current_evaluation)
                         beta = min(beta, current_evaluation)
                         if beta <= alpha:
@@ -252,9 +269,18 @@ class Agent14:
             return False
 
     def is_position_available(self, position):
+        """
+        Checks if the given position exists on the board and is free.
+
+        :param position: The position to check.
+        :returns: True if it's a valid slot, and is not occupied. False otherwise.
+        """
         return self.is_position_valid(position) and self.board[position[0]][position[1]][0] not in ["B", "R"]
 
     def neighbours(self, position):
+        """
+        
+        """
         (x, y) = position
         count = 0
         neighbours_list = []
@@ -274,7 +300,45 @@ class Agent14:
                     self.board[position[0]][position[1]][1] += 10
         return neighbours_list
 
+    def update_chain_neighbours(self, first, last, colour=None):
+        """
+        Updates the weights of the first and last position in a chain.
+        Gets the top and bottom neighbours for the red player, left and right for blue.
+
+        :param first: The first position to evaluate (Top for red, left for blue).
+        :param last: The last position to evaluate (Bottom for red, right for blue).
+        :param colour: The colour of the player who made the move.
+        """
+        x_first, y_first = first
+        x_last, y_last = last
+        colour = colour if colour else self.colour
+
+        if colour == "R":
+            neighbours = [(x_first - 1, y_first), (x_first - 1, y_first + 1), (x_last + 1, y_last), (x_last + 1, y_last - 1)]
+        else:
+            neighbours = [(x_first, y_first - 1), (x_first + 1, y_first - 1), (x_last - 1, y_last + 1), (x_last, y_last + 1)]
+
+        for x, y in neighbours:
+            if self.is_position_available((x, y)):
+                self.board[x][y][1] = self.board[x][y][1] + 50 if colour == "R" else self.board[x][y][1] - 50
+
+
+    def is_neighbour(self, position1, position2):
+        """
+        Checks if the given points are neighbours (can connect).
+
+        :param position1: The first position to check.
+        :param position2: The second position to check.
+        :returns: True if they are neighbouring slots, False otherwise.
+        """
+        (x, y) = position1
+        possible_positions = [position for position in [(x-1, y), (x-1, y+1), (x, y-1), (x, y+1), (x+1, y-1), (x+1, y)] if self.is_position_available(position)]
+        return position2 in possible_positions
+
     def bridges(self, position):
+        """
+        
+        """
         (x, y) = position
         bridge_list = []
         possible_bridge_list = [(x+2, y-1), (x+1, y-2), (x+1, y+1), (x-1, y-1), (x-1, y+2), (x-2, y+1)]
@@ -290,29 +354,34 @@ class Agent14:
         dv = (y2 + x2 // 2) - (y1 + x1 // 2)
         return max(abs(du), abs(dv)) if ((du >= 0 and dv >= 0) or (du < 0 and dv < 0)) else abs(du) + abs(dv)
 
-    # def centerness(self, size, x, y):
-    #     score = 0
-    #     center = (size // 2, size // 2)
-    #     center_val = self.board[size // 2][size // 2]
-    #     if center_val != 0:
-    #         score += 50 * center_val
-    #         center_neighbours = self.neighbours(center, size)
-    #         # Number of red - number of blue
-    #         count = 0
-    #         for (x, y) in center_neighbours:
-    #             value = self.board[x][y][1]
-    #             score += 3 * value
-    #             if (value == self.colour):
-    #                 count += 1
-    #             elif (value == self.opp_colour()):
-    #                 count -= 1
+    def get_longest_chain(self):
+        our_moves = []
+        for x in range(self.board_size):
+            for y in range(self.board_size):
+                if self.board[x][y][0] == self.colour_dict[self.colour]:
+                    our_moves.append((x, y))
 
-    #         # Don't want to continue clusters (blobs)
-    #         if count >= 4:
-    #             score -= 20
-    #         elif count <= -4:
-    #             score += 20
-    #     return score
+        possible_chains = []
+        for move in our_moves:
+            chain = []
+            for move_2 in our_moves:
+                if move == move_2:
+                    continue
+                if self.is_neighbour(move, move_2):
+                    if move not in chain:
+                        chain.append(move)
+                    if move_2 not in chain:
+                        chain.append(move_2)
+            possible_chains.append(chain)
+
+        max = 0
+        index = 0
+        for i in range(len(possible_chains)):
+            length = len(possible_chains[i])
+            if length > max:
+                max = length
+                index = i
+        return possible_chains[index]
 
     def get_minimax_depth_level(self, perc):
         """
@@ -326,6 +395,12 @@ class Agent14:
         else:
             return 1
 
+    def is_board_full(self, board):
+        for x in range(self.board_size):
+            for y in range(self.board_size):
+                if board[x][y] == 0:
+                    return False
+        return True
 
 if __name__ == "__main__":
     agent = Agent14()
