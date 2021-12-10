@@ -18,7 +18,7 @@ class Agent14:
     # 100% - 65% of time left --> 2 levels
     # 64% - 0% of time left --> 1 level
     TIME_LEFT = 300  # seconds
-    thinking_time = 2
+    thinking_time = 4
 
     def __init__(self, board_size=11):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -85,7 +85,7 @@ class Agent14:
 
         self.TIME_LEFT -= int((time() - current_time))
         # Percentage = (time_left / 300) * 100
-        self.thinking_time = self.get_minimax_depth_level(int(self.TIME_LEFT / 3))
+        # self.thinking_time = self.get_minimax_depth_level(int(self.TIME_LEFT / 3))
         return False
 
     def make_move(self, board):
@@ -94,7 +94,7 @@ class Agent14:
         chooses the next move to make from the available pool.
 
         If it can swap, chooses to do so.
-        
+
         :param board: The board to update.
         :returns: The updated board.
         """
@@ -190,7 +190,7 @@ class Agent14:
         :returns: The static value of the best move to make based on the current state
             of the board.
         """
-        if depth == 0 or self.is_board_full(board):
+        if depth == 0:# or self.is_board_full(board):
             return self.get_position_value(x_coor, y_coor)
 
         next_move = "B" if last_move == "R" else "R"
@@ -449,7 +449,7 @@ class Agent14:
             for position_x, position_y in possible_positions:
                 if self.is_position_valid((position_x, position_y)) and board[position_x][position_y][1] > 0 and spt_set[position_x][position_y] == False and nodes[position_x][position_y] > nodes[position_x][position_y] + board[position_x][position_y][1]:
                     board[position_x][position_y][1] += nodes[position_x][position_y]
-        
+
         return board
 
     def minimum_distance(self, spt_set, board):
@@ -461,7 +461,7 @@ class Agent14:
         :param board: The current state of the board.
         :returns: The coordinates of the slot with the lowest weight.
         """
-        min = float("inf") 
+        min = float("inf")
         for x in range(self.board_size):
             for y in range(self.board_size):
                 if board[x][y][1] < min and spt_set[x][y] == False:
