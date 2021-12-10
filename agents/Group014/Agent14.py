@@ -104,7 +104,7 @@ class Agent14:
             self.turn_count += 1
             return board
 
-        move = self.minimax_wrap()
+        move = self.minimax_wrap(board)
 
         board[move[0]][move[1]][1] = float("inf")
         board = self.update_heatmap(board, move)
@@ -145,12 +145,12 @@ class Agent14:
             board[move_x][move_y][1] = board[move_x][move_y][1] + 5 if colour == "B" else board[move_x][move_y][1] - 5
 
         if self.turn_count > 1:
-            longest_current_chain = self.get_longest_chain()
+            longest_current_chain = self.get_longest_chain(board, colour)
             if longest_current_chain:
                 self.update_chain_neighbours(longest_current_chain[0], longest_current_chain[len(longest_current_chain) - 1], colour)
         return board
 
-    def minimax_wrap(self):
+    def minimax_wrap(self, board):
         val = float("-inf") if self.colour == "R" else float("inf")
         best_move = None
         # for i in self.board:
@@ -159,6 +159,7 @@ class Agent14:
         for x in range(self.board_size):
             for y in range(self.board_size):
                 if self.board[x][y][0] == 0:
+                    board = self.dijkstra((x, y), board)
                     value = self.minimax(self.board, self.thinking_time, float("-inf"), float("inf"), self.colour == "R", self.opp_colour(), x, y)
                     if self.colour == "R":
                         if value > val:
@@ -279,7 +280,7 @@ class Agent14:
 
     def neighbours(self, position):
         """
-        
+        TBD
         """
         (x, y) = position
         count = 0
@@ -337,7 +338,7 @@ class Agent14:
 
     def bridges(self, position):
         """
-        
+        TBD
         """
         (x, y) = position
         bridge_list = []
@@ -348,17 +349,33 @@ class Agent14:
         return bridge_list
 
     def distance_between_points(self, p1, p2):
+        """
+        Gets the distance between two points on a hex board.
+
+        :param p1: The first point to check for.
+        :param p2: The second point to check for.
+        :returns: The absolute distance between the two points.
+        """
         y1, x1 = p1
         y2, x2 = p2
         du = x2 - x1
         dv = (y2 + x2 // 2) - (y1 + x1 // 2)
         return max(abs(du), abs(dv)) if ((du >= 0 and dv >= 0) or (du < 0 and dv < 0)) else abs(du) + abs(dv)
 
-    def get_longest_chain(self):
+    def get_longest_chain(self, board, colour=None):
+        """
+        Scans the board for any slots occupied by the players colour, which are
+        connecting, and marks them as a chain.
+
+        :param board: The board to scan.
+        :param colour: The colour of the player to check for.
+        :returns: A list of coordinates of the slots that make the longest chain.
+        """
+        colour = colour if colour else self.colour
         our_moves = []
         for x in range(self.board_size):
             for y in range(self.board_size):
-                if self.board[x][y][0] == self.colour_dict[self.colour]:
+                if board[x][y][0] == self.colour_dict[colour]:
                     our_moves.append((x, y))
 
         possible_chains = []
@@ -396,11 +413,64 @@ class Agent14:
             return 1
 
     def is_board_full(self, board):
+        """
+        Checks if the board is full.
+
+        :param board: The board to evaluate.
+        :returns: True if there are no more free slots, False otherwise.
+        """
         for x in range(self.board_size):
             for y in range(self.board_size):
                 if board[x][y] == 0:
                     return False
         return True
+
+    def dijkstra(self, source, board):
+        """
+        Runs the dijkstra algorithm to get the shortest path from the given slot.
+
+        :param source: The slot to search from.
+        :param board: The current state of the board.
+        :returns: The updated board.
+        """
+        nodes = [[float("inf")] * self.board_size for _ in range(self.board_size)]
+        nodes[source[0]][source[1]] = 0
+        spt_set = [[False] * self.board_size for _ in range(self.board_size)]
+
+        # TODO: Run `self.board_size` times to ensure we get a patch across from one
+        # end to the next.
+        for _ in range(self.board_size):
+            x, y = self.minimum_distance(spt_set, board)
+            spt_set[x][y] = True
+
+            """
+            Update the weight of the adjacent slots of the calculated slot only if the
+            current weight is greater than the new weight and the slot is not in the
+            shortest path tree
+            """
+            possible_positions = [(x-1, y), (x-1, y+1), (x, y-1), (x, y+1), (x+1, y-1), (x+1, y)]
+            for position_x, position_y in possible_positions:
+                if self.is_position_valid((position_x, position_y)) and board[position_x][position_y][1] > 0 and spt_set[position_x][position_y] == False and nodes[position_x][position_y] > nodes[position_x][position_y] + board[position_x][position_y][1]:
+                    board[position_x][position_y][1] += nodes[position_x][position_y]
+        
+        return board
+
+    def minimum_distance(self, spt_set, board):
+        """
+        Gets the slot with the minimum weight, from the slots that have not been
+        included in the shortest path tree yet.
+
+        :param spt_set: The 2-D boolean list containing the visited slots.
+        :param board: The current state of the board.
+        :returns: The coordinates of the slot with the lowest weight.
+        """
+        min = float("inf") 
+        for x in range(self.board_size):
+            for y in range(self.board_size):
+                if board[x][y][1] < min and spt_set[x][y] == False:
+                    min = board[x][y][1]
+                    minimum_slot = (x, y)
+        return minimum_slot
 
 if __name__ == "__main__":
     agent = Agent14()
