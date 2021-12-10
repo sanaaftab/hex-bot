@@ -63,7 +63,7 @@ class Agent14:
                 for y in range(self.board_size):
                     self.board[x].append([0, 9 - self.distance_between_points((self.board_size // 2, self.board_size // 2), (x, y))])
             if self.colour == "R":
-                self.board = self.make_move(self.board)
+                self.board = self.make_move(deepcopy(self.board))
 
         elif message[0] == "END":
             return True
@@ -75,14 +75,13 @@ class Agent14:
             elif message[1] == "SWAP":
                 self.colour = self.opp_colour()
                 if message[3] == self.colour:
-                    self.board = self.make_move(self.board)
+                    self.board = self.make_move(deepcopy(self.board))
 
             elif message[3] == self.colour:
                 opp_move = [int(x) for x in message[1].split(",")]
                 self.board[opp_move[0]][opp_move[1]][0] = self.colour_dict[self.opp_colour()]
                 self.board[opp_move[0]][opp_move[1]][1] = float("-inf")
-                self.board = self.update_heatmap(self.board, opp_move)
-                self.board = self.make_move(self.board)
+                self.board = self.make_move(deepcopy(self.board))
 
         self.TIME_LEFT -= int((time() - current_time))
         # Percentage = (time_left / 300) * 100
@@ -142,7 +141,7 @@ class Agent14:
         for move_x, move_y in self.neighbours(move):
             board[move_x][move_y][1] = board[move_x][move_y][1] + 4 if colour == "R" else board[move_x][move_y][1] - 4
         for move_x, move_y in self.bridges(move):
-            board[move_x][move_y][1] = board[move_x][move_y][1] + 5 if colour == "B" else board[move_x][move_y][1] - 5
+            board[move_x][move_y][1] = board[move_x][move_y][1] + 5 if colour == "R" else board[move_x][move_y][1] - 5
 
         if self.turn_count > 1:
             longest_current_chain = self.get_longest_chain(board, colour)
@@ -153,14 +152,14 @@ class Agent14:
     def minimax_wrap(self, board):
         val = float("-inf") if self.colour == "R" else float("inf")
         best_move = None
-        # for i in self.board:
-        #     print([x[1] for x in i])
-        # print("------------------------------------------")
+        for i in self.board:
+            print([x[1] for x in i])
+        print("------------------------------------------")
         for x in range(self.board_size):
             for y in range(self.board_size):
                 if self.board[x][y][0] == 0:
                     board = self.dijkstra((x, y), board)
-                    value = self.minimax(self.board, self.thinking_time, float("-inf"), float("inf"), self.colour == "R", self.opp_colour(), x, y)
+                    value = self.minimax(board, self.thinking_time, float("-inf"), float("inf"), self.colour == "R", self.opp_colour(), x, y)
                     if self.colour == "R":
                         if value > val:
                             val = value
@@ -202,7 +201,6 @@ class Agent14:
                     if board[x][y][0] == 0:
                         new_board = deepcopy(board)
                         new_board[x][y][0] = self.colour_dict[next_move]
-                        new_board = self.update_heatmap(board, (x, y), next_move)
                         current_evaluation = self.minimax(
                             new_board,
                             depth - 1,
@@ -225,7 +223,6 @@ class Agent14:
                     if board[x][y][0] == 0:
                         new_board = deepcopy(board)
                         new_board[x][y][0] = self.colour_dict[next_move]
-                        new_board = self.update_heatmap(board, (x, y), next_move)
                         current_evaluation = self.minimax(
                             new_board,
                             depth - 1,
