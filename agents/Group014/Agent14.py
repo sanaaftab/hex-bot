@@ -17,7 +17,7 @@ class Agent14:
     PORT = 1234
 
     TIME_LEFT = 300  # seconds
-    thinking_time = 3
+    thinking_time = 1
 
     def __init__(self, board_size=11):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -111,8 +111,12 @@ class Agent14:
         best_move = None
         free_nodes = get_free_nodes(board)
         for node in free_nodes:
-            value = minimax(
-                board,
+            x, y = node.coordinates
+            new_board = deepcopy(board)
+            new_board[x][y].occupy(self.colour)
+
+            minimax_value = minimax(
+                new_board,
                 self.thinking_time,
                 float("-inf"),
                 float("inf"),
@@ -120,12 +124,14 @@ class Agent14:
                 get_opposing_colour(self.colour),
             )
             if self.colour == "R":
-                if value > val:
-                    val = value
+                if minimax_value > val:
+                    print(node.coordinates)
+                    print(minimax_value)
+                    val = minimax_value
                     best_move = node
             elif self.colour == "B":
-                if value < val:
-                    val = value
+                if minimax_value < val:
+                    val = minimax_value
                     best_move = node
         return best_move
 
