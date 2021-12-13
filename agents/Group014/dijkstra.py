@@ -1,7 +1,7 @@
 from collections import defaultdict, deque
 from helper_functions import *
 
-def dijkstra(free_nodes, source, destination):
+def dijkstra(board, free_nodes, source, destination):
     """
     Implement Dijkstra algorithm to find the shortest path.
 
@@ -15,30 +15,53 @@ def dijkstra(free_nodes, source, destination):
 
     # Map of node.coordinates -> weight
     weights = defaultdict(int)
-    # Map of node.coordinates -> set of visited nodes?
-    previous_nodes = defaultdict(set)
+
+    # Map of node.coordinates -> set of visited nodes? (pre-decessor map)
+    predecessor = defaultdict(set)
+
     for node in free_nodes:
-        weights[node.coordinates] = float("inf")
-        previous_nodes[node.coordinates] = []
-    weights[source.coordinates] = 0
-    # previous_nodes[source.coordinates].append(source)
+        weights[node] = float("inf")
+        predecessor[node] = None
+
+    weights[source] = 0
+    predecessor[source] = source
+
+    # predecessor[source.coordinates].append(source)
 
     while free_nodes:
-        current_node = min(free_nodes, key=lambda node: weights[node.coordinates])
-        free_nodes.remove(current_node)
-        if weights[current_node.coordinates] == float("inf"):
+        u = min(free_nodes, key=lambda node: weights[node.value])
+        free_nodes.remove(u)
+
+        if u == destination:
             break
 
-        for neighbour in current_node.neighbours:
-            alternative_route = weights[current_node.coordinates] + 1
-            if alternative_route < weights[neighbour]:
-                weights[neighbour] = alternative_route
-                previous_nodes[neighbour] = current_node
+        print(u.neighbours)
+
+        for nb in u.neighbours:
+            print(nb, nb[0], nb[1])
+            v = board[nb[0]][nb[1]]
+            print(v)
+            w = v.value
+            alt = weights[u] + w
+            if alt < weights[v]:
+                weights[v] = alt
+                predecessor[v] = u
+
+        # # If minimum infinite then break
+        # if weights[current_node.coordinates] == float("inf"):
+        #     break
+
+        # IMPLEMENT 'IS_SPECIAL' HERE
+        # for neighbour in current_node.neighbours:
+        #     alternative_route = weights[current_node.coordinates] + 1
+        #     if alternative_route < weights[neighbour]:
+        #         weights[neighbour] = alternative_route
+        #         predecessor[neighbour] = current_node
 
     path, current_node = [], destination
-    while previous_nodes[current_node.coordinates]:
+    while predecessor[current_node]:
         path.append(current_node)
-        current_node = previous_nodes[current_node.coordinates]
+        current_node = predecessor[current_node]
     if path:
         path.append(current_node)
 

@@ -75,11 +75,12 @@ class Agent14:
                 opp_move = [int(x) for x in message[1].split(",")]
                 self.board[opp_move[0]][opp_move[1]].colour = get_opposing_colour(self.colour)
                 self.board[opp_move[0]][opp_move[1]].value = float("-inf")
+                self.board[opp_move[0]][opp_move[1]].occupy(get_opposing_colour(self.colour))
                 self.make_move(self.board)
 
         self.TIME_LEFT -= int((time() - current_time))
         # Percentage = (time_left / 300) * 100
-        self.thinking_time = get_minimax_depth_level(int(self.TIME_LEFT / 3))
+        self.thinking_time = 1
         return False
 
     def make_move(self, board):
@@ -92,6 +93,10 @@ class Agent14:
         :param board: The board to update.
         :returns: The updated board.
         """
+        # for x in range(len(board)):
+        #     for y in range(len(board[0])):
+        #         print(board[x][y].value)
+
         if self.colour == "B" and self.turn_count == 0:
             self.s.sendall(bytes("SWAP\n", "utf-8"))
             self.turn_count += 1
@@ -100,10 +105,9 @@ class Agent14:
         move = self.minimax_wrap(board)
         x, y = move.coordinates
         # board = self.update_heatmap(board, move)
-
         move.occupy(self.colour)
+
         self.turn_count += 1
-        print(move.coordinates)
         self.s.sendall(bytes(f"{x},{y}\n", "utf-8"))
 
     def minimax_wrap(self, board):
@@ -117,7 +121,7 @@ class Agent14:
 
             minimax_value = minimax(
                 new_board,
-                self.thinking_time,
+                1,
                 float("-inf"),
                 float("inf"),
                 self.colour == "R",
@@ -125,8 +129,6 @@ class Agent14:
             )
             if self.colour == "R":
                 if minimax_value > val:
-                    print(node.coordinates)
-                    print(minimax_value)
                     val = minimax_value
                     best_move = node
             elif self.colour == "B":
@@ -150,6 +152,7 @@ class Agent14:
                     Node(
                         id=node_id,
                         coordinates=(x, y),
+                        board_size = self.board_size,
                         value=(
                             self.board_size
                             - distance_between_points(

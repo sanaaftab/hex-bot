@@ -1,6 +1,7 @@
 from copy import deepcopy
 from dijkstra import *
 from helper_functions import *
+import random
 from random import choice
 
 def minimax(board, depth, alpha, beta, maximising, last_move):
@@ -29,10 +30,9 @@ def minimax(board, depth, alpha, beta, maximising, last_move):
         current_max = float("-inf")
         for node in legal_moves:
             x, y = node.coordinates
-            new_board = deepcopy(board)
-            new_board[x][y].occupy(next_move)
+            board[x][y].occupy(next_move)
             current_evaluation = minimax(
-                new_board,
+                deepcopy(board),
                 depth - 1,
                 alpha,
                 beta,
@@ -48,10 +48,9 @@ def minimax(board, depth, alpha, beta, maximising, last_move):
         current_min = float("inf")
         for node in legal_moves:
             x, y = node.coordinates
-            new_board = deepcopy(board)
-            new_board[x][y].occupy(next_move)
+            board[x][y].occupy(next_move)
             current_evaluation = minimax(
-                new_board,
+                deepcopy(board),
                 depth - 1,
                 alpha,
                 beta,
@@ -80,10 +79,16 @@ def get_minimax_depth_level(perc):
 
 def get_static_evaluation(board):
 
-
+    best_val = 0
+    best_node = None
 
     free_nodes = get_free_nodes(board)
     last_node_index = len(board[0]) - 1
+
+    # for node in free_nodes:
+    #     if node.value > best_val:
+    #         best_val = node.value
+    #         best_node = node
 
     # src_red = [node for node in board[0] if node.is_free]
     # dest_red = [node for node in board[last_node_index] if node.is_free]
@@ -106,29 +111,29 @@ def get_static_evaluation(board):
     #     return 0
 
     #  DEBUG
-    # dijkstra_result_red = dijkstra(free_nodes, src_red, dest_red)
-    # coordinates_r = [red_node.coordinates for red_node in dijkstra_result_red]
-    # print("red:", coordinates_r)
-    # dijkstra_result_blue = dijkstra(free_nodes, src_blue, dest_blue)
-    # coordinates_b = [blue_node.coordinates for blue_node in dijkstra_result_blue]
-    # print("blue:", coordinates_b)
-
+    # # coordinates_r = [red_node.coordinates for red_node in dijkstra_result_red]
+    # # print("red:", coordinates_r)
+    # # coordinates_b = [blue_node.coordinates for blue_node in dijkstra_result_blue]
+    # # print("blue:", coordinates_b)
+    #
     # dijkstra_result = len(dijkstra_result_blue) - len(dijkstra_result_red)
     # print("final result:", dijkstra_result)
+
+    # dijkstra_result_red = dijkstra(board, free_nodes, src_red, dest_red)
+    # dijkstra_result_blue = dijkstra(board, free_nodes, src_blue, dest_blue)
     # dijkstra_result = len(dijkstra(free_nodes, choice(src_blue), choice(dest_blue))) - len(dijkstra(free_nodes, choice(src_red), choice(dest_red)))
 
-    coordinates = []
-    for x in range(len(board)):
-        coordinates.append([])
-        for y in range(len(board[0])):
-            coordinates[x].append(distance_between_points((len(board) // 2, len(board[0]) // 2), (x,y)))
-            # coordinates[x].append([0, 9 - distance_between_points((len(board) // 2, len(board[0]) // 2))])
-            # elf.board[x].append([0, 9 - self.distance_between_points((self.board_size // 2, self.board_size // 2), (x, y))])
-
-    print(coordinates)
-    red_count = 0
-    for i in range(len(board)):
-        for j in range(len(board)):
-            if board[i][j].colour == 'R':
-                red_count += coordinates[i][j]
-    return red_count
+    # coordinates = []
+    # for x in range(len(board)):
+    #     coordinates.append([])
+    #     for y in range(len(board[0])):
+    #         coordinates[x].append(distance_between_points((len(board) // 2, len(board[0]) // 2), (x,y)))
+    #         # coordinates[x].append([0, 9 - distance_between_points((len(board) // 2, len(board[0]) // 2))])
+    #         # elf.board[x].append([0, 9 - self.distance_between_points((self.board_size // 2, self.board_size // 2), (x, y))])
+    #
+    # red_count = 0
+    # for i in range(len(board)):
+    #     for j in range(len(board)):
+    #         if board[i][j].colour == 'R':
+    #             red_count += coordinates[i][j]
+    return random.randint(1, 100)

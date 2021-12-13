@@ -19,7 +19,7 @@ class Node():
     # The colour of the player that is occupying the node, None otherwise
     colour = None
 
-    def __init__(self, id, coordinates, board_size=11, value=1, is_free=True, colour=None):
+    def __init__(self, id, coordinates, board_size, value=1, is_free=True, colour=None):
         self.id = id
         self.coordinates = coordinates
         self.neighbours = self._get_neighbours()
