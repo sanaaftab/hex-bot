@@ -38,7 +38,7 @@ class Node():
         (x, y) = self.coordinates
         neighbours_list = []
         for position in [(x-1, y), (x-1, y+1), (x, y-1), (x, y+1), (x+1, y-1), (x+1, y)]:
-            if (is_position_valid(position, self.board_size)):
+            if is_position_valid(position, self.board_size) or self.is_external():
                 neighbours_list.append(position)
         return neighbours_list
 
@@ -73,3 +73,7 @@ class Node():
         self.value = float("inf") if colour == "R" else float("-inf")
         self.colour = colour
         self.is_free = False
+
+    def is_external(self):
+        x, y = self.coordinates
+        return x == -1 or x == self.board_size or y == -1 or y == self.board_size

@@ -80,3 +80,17 @@ def get_free_nodes(board):
             if node.is_free:
                 nodes.append(node)
     return nodes
+
+def get_free_occupied_nodes(board, colour):
+    """
+    Get all the nodes which are unoccupied or occupied by `colour` from the board as a list.
+
+    :param board: The board to extract the nodes from.
+    :returns: A list of all the unoccupied nodes.
+    """
+    nodes = []
+    for row in board:
+        for node in row:
+            if node.is_free or node.colour == colour:
+                nodes.append(node)
+    return nodes

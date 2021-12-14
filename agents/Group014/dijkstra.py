@@ -1,7 +1,27 @@
 from collections import defaultdict, deque
 from helper_functions import *
 
-def dijkstra(board, free_nodes, source, destination):
+# between a node and a free node = 1
+# between a node and one of the same colour is 0
+# between a node and one of the opposite colour is INFINITY
+def get_weight(node_1, node_2):
+    if node_1.is_external():
+        if node_1.colour == node_2.colour or node_2.colour == None:
+            return 0
+        else:
+            return float("inf")
+    elif node_2.is_external():
+        if node_2.colour == node_1.colour or node_1.colour == None:
+            return 0
+        else:
+            return float("inf")
+    elif node_1.colour == 0 or node_2.colour == None:
+        return 1
+    else:
+        return 0 if node_1.colour == node_2.colour else float("inf")
+
+
+def dijkstra(free_nodes, source, destination):
     """
     Implement Dijkstra algorithm to find the shortest path.
 
@@ -13,57 +33,46 @@ def dijkstra(board, free_nodes, source, destination):
     if source.id == destination.id:
         return [source]
 
-    # Map of node.coordinates -> weight
-    weights = defaultdict(int)
+    # Map of node.coordinates -> distance
+    distance = defaultdict(int)
+    # Map of node.coordinates -> nodes
+    previous_nodes = {}
 
-    # Map of node.coordinates -> set of visited nodes? (pre-decessor map)
-    predecessor = defaultdict(set)
+    # for node in free_nodes:
+    #     distance[node.coordinates] = float("inf")
+    #     previous_nodes[node.coordinates] = None
 
-    for node in free_nodes:
-        weights[node] = float("inf")
-        predecessor[node] = None
+    distance[source.coordinates] = 0
+    previous_nodes[source.coordinates] = source
+    # previous_nodes[source.coordinates] = source.coordinates
 
-    weights[source] = 0
-    predecessor[source] = source
-
-    # predecessor[source.coordinates].append(source)
-
+    # Note that `free_nodes` contains both the free and the nodes occupied by the current player
     while free_nodes:
-        u = min(free_nodes, key=lambda node: weights[node.value])
-        free_nodes.remove(u)
+        current_node = min(free_nodes, key=lambda node: distance[node.coordinates])
+        free_nodes.remove(current_node)
 
-        if u == destination:
+        if current_node == destination:
             break
 
-        print(u.neighbours)
+        for neighbour in current_node.neighbours:
+            # x, y = neighbour
+            # alternative_route = get_weight(current_node, neighbour_node, board)
+            # if distance[current_node.coordinates] != float("inf"):
+            alternative_route = distance[current_node.coordinates] + 1
+            if alternative_route < distance[neighbour]:
+                distance[neighbour] = alternative_route
+                previous_nodes[neighbour] = current_node
+            if neighbour == destination.coordinates:
+                previous_nodes[destination.coordinates] = current_node
 
-        for nb in u.neighbours:
-            print(nb, nb[0], nb[1])
-            v = board[nb[0]][nb[1]]
-            print(v)
-            w = v.value
-            alt = weights[u] + w
-            if alt < weights[v]:
-                weights[v] = alt
-                predecessor[v] = u
-
-        # # If minimum infinite then break
-        # if weights[current_node.coordinates] == float("inf"):
-        #     break
-
-        # IMPLEMENT 'IS_SPECIAL' HERE
-        # for neighbour in current_node.neighbours:
-        #     alternative_route = weights[current_node.coordinates] + 1
-        #     if alternative_route < weights[neighbour]:
-        #         weights[neighbour] = alternative_route
-        #         predecessor[neighbour] = current_node
-
-    path, current_node = [], destination
-    while predecessor[current_node]:
+    path = []
+    current_node = destination
+    while previous_nodes[current_node.coordinates]:
         path.append(current_node)
-        current_node = predecessor[current_node]
+        current_node = previous_nodes[current_node.coordinates]
     if path:
         path.append(current_node)
 
     path.reverse()
+    print(f"Predescessors: {[node for node in previous_nodes]}\nWeights: {[node for node in distance]}\nPath: {[node for node in path]}")
     return path

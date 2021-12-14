@@ -4,6 +4,7 @@ from time import time
 from copy import deepcopy
 from random import choice
 
+from ExternalNodes import ExternalNodes
 from Node import Node
 from helper_functions import *
 from dijkstra import *
@@ -18,6 +19,7 @@ class Agent14:
 
     TIME_LEFT = 300  # seconds
     thinking_time = 1
+    EXTERNAL_NODES = None
 
     def __init__(self, board_size=11):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -79,8 +81,6 @@ class Agent14:
                 self.make_move(self.board)
 
         self.TIME_LEFT -= int((time() - current_time))
-        # Percentage = (time_left / 300) * 100
-        self.thinking_time = 1
         return False
 
     def make_move(self, board):
@@ -125,7 +125,7 @@ class Agent14:
                 float("-inf"),
                 float("inf"),
                 self.colour == "R",
-                get_opposing_colour(self.colour),
+                self.EXTERNAL_NODES,
             )
             if self.colour == "R":
                 if minimax_value > val:
@@ -163,6 +163,8 @@ class Agent14:
                     )
                 )
                 node_id += 1
+        # Create the external nodes
+        self.EXTERNAL_NODES = ExternalNodes(self.board_size)
         return board
 
 
