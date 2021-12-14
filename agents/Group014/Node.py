@@ -12,26 +12,20 @@ class Node():
     coordinates = None
     # The dimension of the board
     board_size = 11
-    # The static value/weight of the node
-    value = 1
-    # True if the node is not occupied, False otherwise
-    is_free = True
     # The colour of the player that is occupying the node, None otherwise
     colour = None
 
-    def __init__(self, id, coordinates, board_size=11, value=1, is_free=True, colour=None):
+    def __init__(self, id, coordinates, board_size=11, colour=None):
         self.id = id
         self.coordinates = coordinates
         self.neighbours = self._get_neighbours()
         self.bridges = self._get_bridges()
         self.board_size = board_size
-        self.value = value
-        self.is_free = is_free
         self.colour = colour
 
     def _get_neighbours(self):
         """
-        Get the coordinates current nodes neighbouring nodes.
+        Get the coordinates of the current nodes neighbouring nodes.
 
         :returns: A list of neighbouring node coordinates.
         """
@@ -70,6 +64,12 @@ class Node():
 
         :param colour: The colour that occupied this node.
         """
-        self.value = float("inf") if colour == "R" else float("-inf")
         self.colour = colour
-        self.is_free = False
+
+    def is_free(self):
+        """
+        Checks if the current node is not occupied.
+
+        :returns: True if unoccupied, False otherwise.
+        """
+        return self.colour is None

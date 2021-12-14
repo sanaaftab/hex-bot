@@ -24,7 +24,7 @@ def is_position_available(position, board):
     :param board: The board that the position is checked against.
     :returns: True if it's a valid slot, and is not occupied. False otherwise.
     """
-    return is_position_valid(position) and board[position[0]][position[1]].is_free
+    return is_position_valid(position) and board[position[0]][position[1]].is_free()
 
 def get_opposing_colour(current_colour):
     """
@@ -63,7 +63,7 @@ def is_board_full(board):
     """
     for row in board:
         for node in row:
-            if node.is_free:
+            if node.is_free():
                 return False
     return True
 
@@ -77,6 +77,21 @@ def get_free_nodes(board):
     nodes = []
     for row in board:
         for node in row:
-            if node.is_free:
+            if node.is_free():
+                nodes.append(node)
+    return nodes
+
+def get_available_nodes(board, colour):
+    """
+    Get all the nodes which are available (unoccupied or occupied by `colour`) from the
+    board as a list.
+
+    :param board: The board to extract the nodes from.
+    :returns: A list of all the unoccupied nodes.
+    """
+    nodes = []
+    for row in board:
+        for node in row:
+            if node.is_free() or node.colour == colour:
                 nodes.append(node)
     return nodes

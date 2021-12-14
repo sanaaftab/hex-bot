@@ -3,7 +3,6 @@ from dijkstra import *
 from helper_functions import *
 from random import choice
 
-
 def minimax(board, depth, alpha, beta, maximising, last_move):
     """
     Applies that minimax algorithm with alpha-beta pruning to the current state of
@@ -21,6 +20,9 @@ def minimax(board, depth, alpha, beta, maximising, last_move):
     :returns: The static value of the best move to make based on the current state
         of the board.
     """
+    if len(get_free_nodes(board)) == 0:
+        return 0
+
     if depth == 0:
         return get_static_evaluation(board)
 
@@ -74,9 +76,7 @@ def get_minimax_depth_level(perc):
     :param perc: The percentage of time used.
     :returns: 3 for a percentage level [65, 100], 2 for [30, 64], 1 otherwise.
     """
-    if perc >= 65:
-        return 3
-    elif perc >= 30:
+    if perc >= 50:
         return 2
     else:
         return 1
@@ -94,41 +94,60 @@ def get_static_evaluation(board):
     :param board: The current game board.
     :returns: The difference between the two paths.
     """
-    free_nodes = get_free_nodes(board)
     last_node_index = len(board[0]) - 1
 
     src_red = []
     for node in board[0]:
-        if node.is_free or node.colour == "R":
+        if node.colour == "R":
+            src_red = [node]
+            break
+        if node.is_free():
             src_red.append(node)
+    if len(src_red) == 0:
+        return 0
     src_red = choice(src_red)
 
     dest_red = []
     # If the node directly downwards from the source is free, choose it.
-    if board[last_node_index][src_red.coordinates[1]].is_free:
+    if board[last_node_index][src_red.coordinates[1]].is_free():
         dest_red.append(board[last_node_index][src_red.coordinates[1]])
     else:
         for node in board[last_node_index]:
-            if node.is_free or node.colour == "R":
+            if node.colour == "R":
+                dest_red = [node]
+                break
+            if node.is_free():
                 dest_red.append(node)
+    if len(dest_red) == 0:
+        return 0
     dest_red = choice(dest_red)
 
     src_blue = []
     for row in board:
-        if row[0].is_free or row[0].colour == "B":
+        if row[0].colour == "B":
+            src_blue = [row[0]]
+            break
+        if row[0].is_free():
             src_blue.append(row[0])
+    if len(src_blue) == 0:
+        return 0
     src_blue = choice(src_blue)
 
     dest_blue = []
     # If the node directly across from the source is free, choose it.
-    if board[src_blue.coordinates[0]][last_node_index].is_free:
+    if board[src_blue.coordinates[0]][last_node_index].is_free():
         dest_blue.append(board[src_blue.coordinates[0]][last_node_index])
     else:
         for row in board:
-            if row[last_node_index].is_free or row[last_node_index].colour == "B":
+            if row[last_node_index].colour == "B":
+                dest_blue = [row[last_node_index]]
+                break
+            if row[last_node_index].is_free():
                 dest_blue.append(row[last_node_index])
+    if len(dest_blue) == 0:
+        return 0
     dest_blue = choice(dest_blue)
 
-    return len(dijkstra(free_nodes, src_blue, dest_blue)) - len(
-        dijkstra(free_nodes, src_red, dest_red)
-    )
+    red_path = dijkstra(board, src_red, dest_red)
+    blue_path = dijkstra(board, src_blue, dest_blue)
+    return len(blue_path) - len(red_path)

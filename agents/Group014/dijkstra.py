@@ -1,11 +1,11 @@
-from collections import defaultdict, deque
+from collections import defaultdict
 from helper_functions import *
 
-def dijkstra(free_nodes, source, destination):
+def dijkstra(board, source, destination):
     """
     Implement Dijkstra algorithm to find the shortest path.
 
-    :param free_nodes: A list of all unoccupied nodes.
+    :param board: The game board.
     :param source: The starting node.
     :param destination: The destination node.
     :returns: A list of nodes that create a path from the source node to the end.
@@ -17,11 +17,17 @@ def dijkstra(free_nodes, source, destination):
     weights = defaultdict(int)
     # Map of node.coordinates -> set of visited nodes?
     previous_nodes = defaultdict(set)
-    for node in free_nodes:
-        weights[node.coordinates] = float("inf")
-        previous_nodes[node.coordinates] = []
+
+    free_nodes = []
+    for row in  board:
+        for node in row:
+            if node.is_free() or node.colour == source.colour:
+                free_nodes.append(node)
+
+                weights[node.coordinates] = float("inf")
+                previous_nodes[node.coordinates] = []
+
     weights[source.coordinates] = 0
-    # previous_nodes[source.coordinates].append(source)
 
     while free_nodes:
         current_node = min(free_nodes, key=lambda node: weights[node.coordinates])

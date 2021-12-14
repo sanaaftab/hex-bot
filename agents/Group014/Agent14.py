@@ -1,9 +1,5 @@
 import socket
 
-from time import time
-from copy import deepcopy
-from random import choice
-
 from Node import Node
 from helper_functions import *
 from dijkstra import *
@@ -15,9 +11,6 @@ class Agent14:
 
     HOST = "127.0.0.1"
     PORT = 1234
-
-    TIME_LEFT = 300  # seconds
-    thinking_time = 3
 
     def __init__(self, board_size=11):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -42,7 +35,6 @@ class Agent14:
         :param data: The binary data string received from the game engine.
         :returns: True if the game ended, False otherwise.
         """
-        current_time = time()
         message = data.decode("utf-8").strip().split("\n")[0].split(";")
 
         if message[0] == "START":
@@ -73,13 +65,9 @@ class Agent14:
 
             elif message[3] == self.colour:
                 opp_move = [int(x) for x in message[1].split(",")]
-                self.board[opp_move[0]][opp_move[1]].colour = get_opposing_colour(self.colour)
-                self.board[opp_move[0]][opp_move[1]].value = float("-inf")
+                self.board[opp_move[0]][opp_move[1]].occupy(get_opposing_colour(self.colour))
                 self.make_move(self.board)
 
-        self.TIME_LEFT -= int((time() - current_time))
-        # Percentage = (time_left / 300) * 100
-        self.thinking_time = get_minimax_depth_level(int(self.TIME_LEFT / 3))
         return False
 
     def make_move(self, board):
@@ -103,7 +91,6 @@ class Agent14:
 
         move.occupy(self.colour)
         self.turn_count += 1
-        print(move.coordinates)
         self.s.sendall(bytes(f"{x},{y}\n", "utf-8"))
 
     def minimax_wrap(self, board):
@@ -113,7 +100,7 @@ class Agent14:
         for node in free_nodes:
             value = minimax(
                 board,
-                self.thinking_time,
+                1,
                 float("-inf"),
                 float("inf"),
                 self.colour == "R",
@@ -144,13 +131,6 @@ class Agent14:
                     Node(
                         id=node_id,
                         coordinates=(x, y),
-                        value=(
-                            self.board_size
-                            - distance_between_points(
-                                (self.board_size // 2, self.board_size // 2),
-                                (x, y),
-                            )
-                        ),
                     )
                 )
                 node_id += 1
