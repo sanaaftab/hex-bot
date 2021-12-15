@@ -1,11 +1,8 @@
 import socket
 
-from time import time
 from copy import deepcopy
-from random import choice
 
-from ExternalNodes import ExternalNodes
-from Node import Node
+from Node import ExternalNodes, Node
 from helper_functions import *
 from dijkstra import *
 from minimax import *
@@ -17,8 +14,6 @@ class Agent14:
     HOST = "127.0.0.1"
     PORT = 1234
 
-    TIME_LEFT = 300  # seconds
-    thinking_time = 1
     EXTERNAL_NODES = None
 
     def __init__(self, board_size=11):
@@ -44,7 +39,6 @@ class Agent14:
         :param data: The binary data string received from the game engine.
         :returns: True if the game ended, False otherwise.
         """
-        current_time = time()
         message = data.decode("utf-8").strip().split("\n")[0].split(";")
 
         if message[0] == "START":
@@ -75,12 +69,11 @@ class Agent14:
 
             elif message[3] == self.colour:
                 opp_move = [int(x) for x in message[1].split(",")]
-                self.board[opp_move[0]][opp_move[1]].colour = get_opposing_colour(self.colour)
-                self.board[opp_move[0]][opp_move[1]].value = float("-inf")
-                self.board[opp_move[0]][opp_move[1]].occupy(get_opposing_colour(self.colour))
+                self.board[opp_move[0]][opp_move[1]].occupy(
+                    get_opposing_colour(self.colour)
+                )
                 self.make_move(self.board)
 
-        self.TIME_LEFT -= int((time() - current_time))
         return False
 
     def make_move(self, board):
@@ -93,10 +86,6 @@ class Agent14:
         :param board: The board to update.
         :returns: The updated board.
         """
-        # for x in range(len(board)):
-        #     for y in range(len(board[0])):
-        #         print(board[x][y].value)
-
         if self.colour == "B" and self.turn_count == 0:
             self.s.sendall(bytes("SWAP\n", "utf-8"))
             self.turn_count += 1
@@ -104,7 +93,6 @@ class Agent14:
 
         move = self.minimax_wrap(board)
         x, y = move.coordinates
-        # board = self.update_heatmap(board, move)
         move.occupy(self.colour)
 
         self.turn_count += 1
@@ -113,18 +101,16 @@ class Agent14:
     def minimax_wrap(self, board):
         val = float("-inf") if self.colour == "R" else float("inf")
         best_move = None
-        free_nodes = get_free_nodes(board)
-        for node in free_nodes:
+        for node in get_free_nodes(board):
             x, y = node.coordinates
             new_board = deepcopy(board)
             new_board[x][y].occupy(self.colour)
-
             minimax_value = minimax(
                 new_board,
                 1,
                 float("-inf"),
                 float("inf"),
-                self.colour == "R",
+                self.colour == "B",
                 self.EXTERNAL_NODES,
             )
             if self.colour == "R":
@@ -139,9 +125,10 @@ class Agent14:
 
     def initialise_board(self):
         """
-        Create a `board_size` x `board_size` matrix to represent the hex board.
+        Create a `board_size`x`board_size` list to represent the hex board.
+        Also creates the external nodes.
 
-        :returns: A 2-D array of `board_size` x `board_size` dimensions.
+        :returns: A 2-D list of `board_size`x`board_size` dimensions.
         """
         node_id = 0
         board = []
@@ -152,7 +139,7 @@ class Agent14:
                     Node(
                         id=node_id,
                         coordinates=(x, y),
-                        board_size = self.board_size,
+                        board_size=self.board_size,
                         value=(
                             self.board_size
                             - distance_between_points(
@@ -165,10 +152,7 @@ class Agent14:
                 node_id += 1
         # Create the external nodes
         self.EXTERNAL_NODES = ExternalNodes(self.board_size)
-        neighbours = self.EXTERNAL_NODES.external_up.neighbours[2]
 
-        print("NEIGHBOUR COORDINATES", neighbours, board[neighbours[0]][neighbours[1]].neighbours)
-        # print("COORDINATES", [node.neighbours for node in [self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down, self.EXTERNAL_NODES.external_left, self.EXTERNAL_NODES.external_right]])
         return board
 
 
