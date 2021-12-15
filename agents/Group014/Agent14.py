@@ -165,6 +165,10 @@ class Agent14:
                 node_id += 1
         # Create the external nodes
         self.EXTERNAL_NODES = ExternalNodes(self.board_size)
+        neighbours = self.EXTERNAL_NODES.external_up.neighbours[2]
+
+        print("NEIGHBOUR COORDINATES", neighbours, board[neighbours[0]][neighbours[1]].neighbours)
+        # print("COORDINATES", [node.neighbours for node in [self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down, self.EXTERNAL_NODES.external_left, self.EXTERNAL_NODES.external_right]])
         return board
 
 

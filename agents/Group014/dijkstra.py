@@ -1,5 +1,6 @@
 from collections import defaultdict, deque
 from helper_functions import *
+import heapq
 
 # between a node and a free node = 1
 # between a node and one of the same colour is 0
@@ -21,7 +22,7 @@ def get_weight(node_1, node_2):
         return 0 if node_1.colour == node_2.colour else float("inf")
 
 
-def dijkstra(free_nodes, source, destination):
+def dijkstra(board, source, destination):
     """
     Implement Dijkstra algorithm to find the shortest path.
 
@@ -36,43 +37,65 @@ def dijkstra(free_nodes, source, destination):
     # Map of node.coordinates -> distance
     distance = defaultdict(int)
     # Map of node.coordinates -> nodes
-    previous_nodes = {}
+    predecessor = {}
 
-    # for node in free_nodes:
-    #     distance[node.coordinates] = float("inf")
-    #     previous_nodes[node.coordinates] = None
+    for row in board:
+        for node in row:
+            distance[node] = float("inf")
+            predecessor[node] = None
 
-    distance[source.coordinates] = 0
-    previous_nodes[source.coordinates] = source
-    # previous_nodes[source.coordinates] = source.coordinates
+    distance[source] = 0
+    predecessor[source] = source
+    distance[destination] = float("inf")
+    predecessor[destination] = None
+    # predecessor[source.coordinates] = source.coordinates
+
+    # pq = [cell for cells in board for cell in cells]
+    pq = []
+    pq.append(source)
+    pq.append(destination)
+    heapq.heapify(pq)
 
     # Note that `free_nodes` contains both the free and the nodes occupied by the current player
-    while free_nodes:
-        current_node = min(free_nodes, key=lambda node: distance[node.coordinates])
-        free_nodes.remove(current_node)
-
+    while pq != []:
+        current_node = heapq.heappop(pq)
         if current_node == destination:
             break
 
+        # make sure neighbor is either free or same color as us
         for neighbour in current_node.neighbours:
-            # x, y = neighbour
-            # alternative_route = get_weight(current_node, neighbour_node, board)
-            # if distance[current_node.coordinates] != float("inf"):
-            alternative_route = distance[current_node.coordinates] + 1
-            if alternative_route < distance[neighbour]:
-                distance[neighbour] = alternative_route
-                previous_nodes[neighbour] = current_node
-            if neighbour == destination.coordinates:
-                previous_nodes[destination.coordinates] = current_node
+            if (is_position_available(neighbour, board) or is_coordinate_external(neighbour, board)):
+                print(f"Hello neighbour {neighbour} -- {current_node.coordinates}")
+                x, y = neighbour
+                node_of_neighbour = board[x][y]
+                if node_of_neighbour.colour == source.colour or not node_of_neighbour.colour:
+                    pq.append(node_of_neighbour)
+                    # x, y = neighbour
+                    # alternative_route = get_weight(current_node, neighbour_node, board)
+                    # if distance[current_node.coordinates] != float("inf"):
+                    alternative_route = distance[current_node] + 1
+
+                    print(f"General Kenoby, {node_of_neighbour.coordinates} -- {current_node.coordinates}")
+                    if alternative_route < distance[node_of_neighbour]:
+                        distance[node_of_neighbour] = alternative_route
+                        predecessor[node_of_neighbour] = current_node
+                    if node_of_neighbour.coordinates == destination.coordinates:
+                        predecessor[destination] = current_node
+                        heapq.heapify(pq)
 
     path = []
-    current_node = destination
-    while previous_nodes[current_node.coordinates]:
-        path.append(current_node)
-        current_node = previous_nodes[current_node.coordinates]
-    if path:
-        path.append(current_node)
-
-    path.reverse()
-    print(f"Predescessors: {[node for node in previous_nodes]}\nWeights: {[node for node in distance]}\nPath: {[node for node in path]}")
+    # i = 1
+    # print("LEN OF PREV NODES", len(predecessor))
+    # import pdb;pdb.set_trace()
+    for node in predecessor.keys():
+        if predecessor[node] and node not in [source, destination]:   # I AM TESTING ON 4X4
+            # print(node.coordinates, predecessor[node].coordinates)
+            path.append(node)
+    #
+    # while predecessor[current_node.coordinates]:
+    #     print(f"predecessor of {current_node.coordinates} is {predecessor[current_node.coordinates]}")
+    #     path.append(current_node)
+    #     current_node = predecessor[current_node.coordinates]
+    # path.reverse()
+    # print(f"Predescessors: {[node for node in predecessor]}\nPath: {[node for node in path]}")
     return path

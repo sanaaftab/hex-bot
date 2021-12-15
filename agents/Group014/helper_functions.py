@@ -16,6 +16,10 @@ def is_position_valid(position, board_size):
     except Exception:
         return False
 
+def is_coordinate_external(position, board_size):
+    x, y = position if type(position) == tuple else position.coordinates
+    return x == -1 or x == board_size or y == -1 or y == board_size
+
 def is_position_available(position, board):
     """
     Checks if the given position exists on the board and is free.
@@ -24,7 +28,7 @@ def is_position_available(position, board):
     :param board: The board that the position is checked against.
     :returns: True if it's a valid slot, and is not occupied. False otherwise.
     """
-    return is_position_valid(position) and board[position[0]][position[1]].is_free
+    return is_position_valid(position, len(board)) and board[position[0]][position[1]].is_free
 
 def get_opposing_colour(current_colour):
     """

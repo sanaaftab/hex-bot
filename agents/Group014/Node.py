@@ -29,6 +29,19 @@ class Node():
         self.is_free = is_free
         self.colour = colour
 
+    def __lt__(self, node_2):
+        return distance_between_points((0, 0), node_2.coordinates) - distance_between_points((0, 0), self.coordinates)
+
+    def __eq__(self, node_2):
+        return self.coordinates == node_2.coordinates and self.colour == node_2.colour
+
+    def __hash__(self):
+        if self.colour == "R":
+            return 0
+        elif self.colour == "B":
+            return -1
+        else:
+            return self.coordinates[0]**5 + 7 + self.coordinates[1]**3
     def _get_neighbours(self):
         """
         Get the coordinates current nodes neighbouring nodes.

@@ -69,16 +69,17 @@ class ExternalNodes():
         self.external_left.neighbours = self._get_neighbours(self.LEFT)
 
     def _get_neighbours(self, direction):
-        self.neighbours = []
+        neighbours = []
         if direction == self.UP:
             for x in range(self.board_size):
-                self.neighbours.append((0, x)) 
+                neighbours.append((0, x))
         elif direction == self.RIGHT:
             for x in range(self.board_size):
-                self.neighbours.append((x, self.board_size - 1)) 
+                neighbours.append((x, self.board_size - 1))
         elif direction == self.DOWN:
             for x in range(self.board_size):
-                self.neighbours.append((self.board_size - 1, x)) 
+                neighbours.append((self.board_size - 1, x))
         elif direction == self.LEFT:
             for x in range(self.board_size):
-                self.neighbours.append((x, 0))
+                neighbours.append((x, 0))
+        return neighbours

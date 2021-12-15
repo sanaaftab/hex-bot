@@ -80,14 +80,31 @@ def get_minimax_depth_level(perc):
         return 1
 
 def get_static_evaluation(board, external_nodes):
-    blue_nodes = get_free_occupied_nodes(board, "B")
-    red_nodes = get_free_occupied_nodes(board, "R")
+    # blue_nodes = get_free_occupied_nodes(board, "B")
+    # red_nodes = get_free_occupied_nodes(board, "R")
 
 
-    blue_eval = dijkstra(blue_nodes, external_nodes.external_left, external_nodes.external_right)
-    blue_eval = len([node_coordinates for node_coordinates in blue_eval if board[node_coordinates].is_free])
+    # board[0][0].occupy("R")
+    # board[2][0].occupy("R")
+    # board[3][0].occupy("R")
+    # board[4][0].occupy("R")
+    red_eval = dijkstra(board, external_nodes.external_up, external_nodes.external_down)
+    red_length = 0
+    for node in red_eval:
+        if not is_coordinate_external(node.coordinates, len(board)) and not node.colour:
+            red_length += 1
 
-    red_eval = dijkstra(red_nodes, external_nodes.external_up, external_nodes.external_down)
-    red_eval = len([node_coordinates for node_coordinates in red_eval if board[node_coordinates].is_free])
+    print("DIJKSTRA EVAL FOR RED", [node.coordinates for node in red_eval])
+    from sys import exit
+    exit(0)
 
-    return blue_eval - red_eval
+    blue_eval = dijkstra(board, external_nodes.external_left, external_nodes.external_right)
+    blue_length = 0
+    for node in blue_eval:
+        if not is_coordinate_external(node.coordinates, len(board)) and not node.colour:
+            blue_length += 1
+
+    print("BLUE EVALUATIONL", blue_length)
+    print("RED EVALUATIONL", red_length)
+    # red_eval = len([node_coordinates for node_coordinates in red_eval if board[node_coordinates].is_free])
+    return blue_length - red_length
