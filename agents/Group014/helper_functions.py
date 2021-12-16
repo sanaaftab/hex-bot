@@ -28,7 +28,7 @@ def is_position_available(position, board):
     """
     Checks if the given position exists on the board and is free.
 
-    :param position: The position to check.
+    :param position: The position to check as a tuple.
     :param board: The board that the position is checked against.
     :returns: True if it's a valid slot, and is not occupied. False otherwise.
     """
@@ -85,3 +85,25 @@ def get_free_nodes(board):
             if node.is_free():
                 nodes.append(node)
     return nodes
+
+def is_bridge(board, position, position_2):
+    """
+    Checks if the two given points are a bridge, and checks that their two mutual
+    neighbours are available.
+
+    Assumes that the two moves are valid and have been occupied by the current player.
+
+    :param board: The game board.
+    :param position: The first position to check.
+    :param position_2: The second position to check.
+    :returns: The list of available neighbours that connect the bridge, None otherwise.
+    """
+    position_node = board[position[0]][position[1]]
+    position_2_node = board[position_2[0]][position_2[1]]
+
+    neighbours = []
+    for neighbour in set(position_node.neighbours) & set(position_2_node.neighbours):
+        if is_position_available(neighbour, board):
+            neighbours.append(neighbour)
+    
+    return neighbours if neighbours else None

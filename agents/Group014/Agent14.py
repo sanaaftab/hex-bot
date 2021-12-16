@@ -7,7 +7,8 @@ from helper_functions import *
 from dijkstra import *
 from minimax import *
 
-import random
+from time import time_ns
+from random import choice, shuffle
 
 class Agent14:
     """Represents the agent for Group14."""
@@ -16,6 +17,21 @@ class Agent14:
     PORT = 1234
 
     EXTERNAL_NODES = None
+    TIME_BUDGET = 295 * 1000 * 1000 * 1000
+    MINIMAX_TIMEOUT = 10 * 1000 * 1000 * 1000
+    SWITCH_TO_DIJKSTRA = 250 * 1000 * 1000 * 1000
+
+    STARTING_MOVES = [
+        (5, 5),
+        (3, 6),
+        (4, 4),
+        (4, 7),
+        (6, 3),
+        (6, 6),
+        (7, 4),
+    ]
+    PREDETERMINED_MOVES = []
+    MOVES_MADE = []
 
     def __init__(self, board_size=11):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -73,11 +89,11 @@ class Agent14:
                 self.board[opp_move[0]][opp_move[1]].occupy(
                     get_opposing_colour(self.colour)
                 )
-                self.make_move(self.board)
+                self.make_move(self.board, opp_move)
 
         return False
 
-    def make_move(self, board):
+    def make_move(self, board, opp_move=None):
         """
         Gets all available moves from the current state of the board and randomly
         chooses the next move to make from the available pool.
@@ -85,33 +101,114 @@ class Agent14:
         If it can swap, chooses to do so.
 
         :param board: The board to update.
+        :param opp_move: The move made by the opponent. Currently is only used on
+            the first turn as the Blue player, to determine if the player should
+            swap or not.
         :returns: The updated board.
         """
-        if self.colour == "B" and self.turn_count == 0:
-            self.s.sendall(bytes("SWAP\n", "utf-8"))
+        current_time = time_ns()
+        if self.colour == "B" and self.turn_count == 0 and opp_move in self.STARTING_MOVES:
+            self.TIME_BUDGET -= time_ns() - current_time
             self.turn_count += 1
-            return board
+            self.s.sendall(bytes("SWAP\n", "utf-8"))
+            return
 
-        # move = self.minimax_wrap(board)
-        if self.colour == "R":
-            path = dijkstra(board, self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down)
+        if self.turn_count < 5:
+            print("Predetermined move -- ", end="")
+            # If no predetermined moves have been generated, then get a random starting
+            # move.
+            if self.PREDETERMINED_MOVES == []:
+                possible_move = None
+                while self.STARTING_MOVES and not possible_move:
+                    possible_move = choice(self.STARTING_MOVES)
+                    if is_position_available(possible_move, board):
+                        # If the predetermined move is the center, get all 6 neighbours
+                        # otherwise get the two bridges according to ./nodes.jpg
+                        if possible_move == (5, 5):
+                            neighbours = [(3, 6),(4, 4),(4, 7),(6, 3),(6, 6),(7, 4)]
+                        elif possible_move in [(6,3), (4,7)]:
+                            neighbours = [
+                                (possible_move[0] + 1, possible_move[1] - 2),
+                                (possible_move[0] - 1, possible_move[1] + 2),
+                            ]
+                        elif possible_move in [(4,4), (6,6)]:
+                            neighbours = [
+                                (possible_move[0] - 1, possible_move[1] - 1),
+                                (possible_move[0] + 1, possible_move[1] + 1),
+                            ]
+                        elif possible_move in [(3,6), (7,4)]:
+                            neighbours = [
+                                (possible_move[0] - 2, possible_move[1] + 1),
+                                (possible_move[0] + 2, possible_move[1] - 1),
+                            ]
+                        else:
+                            raise Exception(f"Uncaught possible move returned {possible_move}")
+
+                        # Append the neighbours into the predetermined moves
+                        for position in neighbours:
+                            self.PREDETERMINED_MOVES.append(position)
+
+                        x, y = possible_move
+                        self.STARTING_MOVES.remove(possible_move)
+                    else:
+                        self.STARTING_MOVES.remove(possible_move)
+                        possible_move = None
+                # This shouldn't really happen so I'm raising an error ...
+                # Can probably handle it better.
+                if not possible_move:
+                    raise Exception("No starting move found")
+            else:
+                possible_move = None
+                while self.PREDETERMINED_MOVES and not possible_move:
+                    possible_move = choice(self.PREDETERMINED_MOVES)
+                    if is_position_available(possible_move, board):
+                        x, y = possible_move
+                        self.PREDETERMINED_MOVES.remove(possible_move)
+                    else:
+                        self.PREDETERMINED_MOVES.remove(possible_move)
+                        possible_move = None
+                # This shouldn't really happen so I'm raising an error ...
+                # Can probably handle it better.
+                if not possible_move:
+                    raise Exception("No predetermined move found")
+        # -~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-
+        # | TODO: Implement bridge connection |
+        # -~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-
         else:
-            path = dijkstra(board, self.EXTERNAL_NODES.external_left, self.EXTERNAL_NODES.external_right)
-        
-        if not path:
-            raise Exception("No path provided")
-        path = [node for node in path if not is_coordinate_external(node, len(board)) and not node.colour]
-        move = random.choice(path)
-        x, y = move.coordinates
-        move.occupy(self.colour)
+            # Minimax
+            if self.TIME_BUDGET > self.SWITCH_TO_DIJKSTRA:
+                print("Minimax move -- ", end="")
+                move = self.minimax_wrap(board)
+            else:
+                print("Dijkstra move -- ", end="")
+            # Dijkstra
+                if self.colour == "R":
+                    path = dijkstra(board, self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down)
+                else:
+                    path = dijkstra(board, self.EXTERNAL_NODES.external_left, self.EXTERNAL_NODES.external_right)
+                
+                if not path:
+                    raise Exception("No path provided")
+                path = [node for node in path if not is_coordinate_external(node, len(board)) and not node.colour]
+                move = choice(path)
 
+            x, y = move.coordinates
+
+        self.board[x][y].occupy(self.colour)
+        self.MOVES_MADE.append((x, y))
+        print(f"{x}, {y} -- with time left: {int(self.TIME_BUDGET // (1000 * 1000 * 1000))}")
+
+        self.TIME_BUDGET -= time_ns() - current_time
         self.turn_count += 1
         self.s.sendall(bytes(f"{x},{y}\n", "utf-8"))
 
     def minimax_wrap(self, board):
         val = float("-inf") if self.colour == "R" else float("inf")
         best_move = None
-        for node in get_free_nodes(board):
+        current_time = time_ns()
+        free_nodes = get_free_nodes(board)
+        shuffle(free_nodes)
+        for node in free_nodes:
             x, y = node.coordinates
             new_board = deepcopy(board)
             new_board[x][y].occupy(self.colour)
@@ -131,6 +228,9 @@ class Agent14:
                 if minimax_value < val:
                     val = minimax_value
                     best_move = node
+            # # Time cap minimax
+            if self.MINIMAX_TIMEOUT < time_ns() - current_time:
+                return best_move
         return best_move
 
     def initialise_board(self):

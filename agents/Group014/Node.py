@@ -12,7 +12,7 @@ class Node:
     # The static value/weight of the node
     # The colour of the player that is occupying the node, None otherwise
 
-    def __init__(self, id, coordinates, board_size, value=1, is_free=True, colour=None):
+    def __init__(self, id, coordinates, board_size, value=1, colour=None):
         self.id = id
         self.coordinates = coordinates
         self.board_size = board_size
@@ -55,7 +55,6 @@ class Node:
             (x + 1, y - 1),
             (x + 1, y),
         ]:
-
             if is_position_valid(position, self.board_size) or self.is_external():
                 neighbours_list.append(position)
 
@@ -151,23 +150,23 @@ class ExternalNodes:
         self._setup_left()
 
     def _setup_up(self):
-        self.external_up = Node(self.UP, (-1, 0), self.board_size, 0, True, "R")
+        self.external_up = Node(self.UP, (-1, 0), self.board_size, 0, "R")
         self.external_up.neighbours = self._get_neighbours(self.UP)
 
     def _setup_right(self):
         self.external_right = Node(
-            self.RIGHT, (0, self.board_size), self.board_size, 0, True, "B"
+            self.RIGHT, (0, self.board_size), self.board_size, 0, "B"
         )
         self.external_right.neighbours = self._get_neighbours(self.RIGHT)
 
     def _setup_down(self):
         self.external_down = Node(
-            self.DOWN, (self.board_size, 0), self.board_size, 0, True, "R"
+            self.DOWN, (self.board_size, 0), self.board_size, 0, "R"
         )
         self.external_down.neighbours = self._get_neighbours(self.DOWN)
 
     def _setup_left(self):
-        self.external_left = Node(self.LEFT, (0, -1), self.board_size, 0, True, "B")
+        self.external_left = Node(self.LEFT, (0, -1), self.board_size, 0, "B")
         self.external_left.neighbours = self._get_neighbours(self.LEFT)
 
     def _get_neighbours(self, direction):

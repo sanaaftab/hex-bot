@@ -1,26 +1,5 @@
-from collections import defaultdict, deque
+from collections import defaultdict
 from helper_functions import *
-import heapq
-
-# between a node and a free node = 1
-# between a node and one of the same colour is 0
-# between a node and one of the opposite colour is INFINITY
-def get_weight(node_1, node_2):
-    if node_1.is_external():
-        if node_1.colour == node_2.colour or node_2.colour == None:
-            return 0
-        else:
-            return float("inf")
-    elif node_2.is_external():
-        if node_2.colour == node_1.colour or node_1.colour == None:
-            return 0
-        else:
-            return float("inf")
-    elif node_1.colour == 0 or node_2.colour == None:
-        return 1
-    else:
-        return 0 if node_1.colour == node_2.colour else float("inf")
-
 
 def dijkstra(board, source, destination):
     """
@@ -63,9 +42,6 @@ def dijkstra(board, source, destination):
 
         for neighbour in current_node.neighbours:
             if destination.coordinates == neighbour and (current_node.colour == source.colour or current_node.is_free()):
-                # alternative_route = distance[current_node] + 1
-                # if alternative_route < distance[destination]:
-                #     print("here too")
                 distance[destination] = distance[current_node] + 1
                 predecessor[destination] = current_node
 
@@ -82,23 +58,13 @@ def dijkstra(board, source, destination):
                             distance[node_of_neighbour] = alternative_route
                             predecessor[node_of_neighbour] = current_node
 
-    # print("THIS IS THE BOARD!!!")
-    # for row in board:
-    #     for node in row:
-    #         print(f"{node.coordinates} -- {node.colour}")
-    
-    # print("\n\nPREDECESSORS MAP!!!!!!")
-    # for key, value in predecessor.items():
-    #     if value:
-    #         print(f"Predecessor of {key.coordinates} is {value.coordinates}")
-    #     else:
-    #         print(f"{key.coordinates} has no predecessor")
-
     path, current_node = [], predecessor[destination]
-    while predecessor[current_node] != source:
-        path.append(current_node)
-        current_node = predecessor[current_node]
-
+    try:
+        while predecessor[current_node] != source:
+            path.append(current_node)
+            current_node = predecessor[current_node]
+    except KeyError:
+        return []
 
     path.append(current_node)
     

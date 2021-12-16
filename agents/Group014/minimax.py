@@ -2,6 +2,7 @@ from copy import deepcopy
 from dijkstra import *
 from helper_functions import *
 
+from random import shuffle
 
 def minimax(board, depth, alpha, beta, maximising, external_nodes):
     """
@@ -23,6 +24,7 @@ def minimax(board, depth, alpha, beta, maximising, external_nodes):
         return get_static_evaluation(board, external_nodes)
 
     legal_moves = get_free_nodes(board)
+    shuffle(legal_moves)
     if len(legal_moves) == 0:
         return 0
 
@@ -68,6 +70,8 @@ def minimax(board, depth, alpha, beta, maximising, external_nodes):
 
 def get_static_evaluation(board, external_nodes):
     red_eval = dijkstra(board, external_nodes.external_up, external_nodes.external_down)
+    if red_eval == []:
+        return -9999
     red_length = 0
     for node in red_eval:
         if not is_coordinate_external(node, len(board)) and not node.colour:
@@ -76,9 +80,12 @@ def get_static_evaluation(board, external_nodes):
     blue_eval = dijkstra(
         board, external_nodes.external_left, external_nodes.external_right
     )
+    if blue_eval == []:
+        return 9999
     blue_length = 0
     for node in blue_eval:
         if not is_coordinate_external(node, len(board)) and not node.colour:
             blue_length += 1
 
     return blue_length - red_length
+
