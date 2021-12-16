@@ -57,36 +57,49 @@ def dijkstra(board, source, destination):
     while pq:
         current_node = min(pq, key=lambda node: distance[node])
         pq.remove(current_node)
-        if current_node == destination:
+
+        if current_node.coordinates == destination.coordinates:
             break
 
         for neighbour in current_node.neighbours:
-            if is_position_available_for_colour(neighbour, board, source.colour):
-                if (
-                    is_coordinate_external(neighbour, board)
-                    and destination.coordinates == neighbour
-                ):
-                    alternative_route = distance[current_node] + 1
-                    if alternative_route < distance[destination]:
-                        distance[destination] = alternative_route
-                        predecessor[destination] = current_node
-                else:
-                    x, y = neighbour
-                    node_of_neighbour = board[x][y]
-                    if node_of_neighbour in pq:
+            if destination.coordinates == neighbour and (current_node.colour == source.colour or current_node.is_free()):
+                # alternative_route = distance[current_node] + 1
+                # if alternative_route < distance[destination]:
+                #     print("here too")
+                distance[destination] = distance[current_node] + 1
+                predecessor[destination] = current_node
 
-                        if (
-                            node_of_neighbour.colour == source.colour
-                            or not node_of_neighbour.colour
-                        ):
-                            alternative_route = distance[current_node] + 1
-                            if alternative_route < distance[node_of_neighbour]:
-                                distance[node_of_neighbour] = alternative_route
-                                predecessor[node_of_neighbour] = current_node
+            if is_position_valid(neighbour, len(board)) and (current_node.colour == source.colour or current_node.is_free()):
+                x, y = neighbour
+                node_of_neighbour = board[x][y]
+                if node_of_neighbour in pq:
+                    if (
+                        node_of_neighbour.colour == source.colour
+                        or not node_of_neighbour.colour
+                    ):
+                        alternative_route = distance[current_node] + 1
+                        if alternative_route < distance[node_of_neighbour]:
+                            distance[node_of_neighbour] = alternative_route
+                            predecessor[node_of_neighbour] = current_node
 
-    path = []
-    for node in predecessor.keys():
-        if predecessor[node] and node not in [source, destination]:
-            path.append(node)
+    # print("THIS IS THE BOARD!!!")
+    # for row in board:
+    #     for node in row:
+    #         print(f"{node.coordinates} -- {node.colour}")
+    
+    # print("\n\nPREDECESSORS MAP!!!!!!")
+    # for key, value in predecessor.items():
+    #     if value:
+    #         print(f"Predecessor of {key.coordinates} is {value.coordinates}")
+    #     else:
+    #         print(f"{key.coordinates} has no predecessor")
 
+    path, current_node = [], predecessor[destination]
+    while predecessor[current_node] != source:
+        path.append(current_node)
+        current_node = predecessor[current_node]
+
+
+    path.append(current_node)
+    
     return path

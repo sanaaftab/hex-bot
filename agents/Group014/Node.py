@@ -5,28 +5,21 @@ class Node:
     """Represents a slot on the board"""
 
     # The uniqe id of the node
-    id = None
     # A list of neighbouring nodes
-    neighbours = None
     # A list of possible bridges
-    bridges = None
     # The coordinates of the node on the board as a tuple
-    coordinates = None
     # The dimension of the board
-    board_size = 11
     # The static value/weight of the node
-    value = 1
     # The colour of the player that is occupying the node, None otherwise
-    colour = None
 
     def __init__(self, id, coordinates, board_size, value=1, is_free=True, colour=None):
         self.id = id
         self.coordinates = coordinates
-        self.neighbours = self._get_neighbours()
-        self.bridges = self._get_bridges()
         self.board_size = board_size
         self.value = value
         self.colour = colour
+        self.neighbours = self._get_neighbours()
+        self.bridges = self._get_bridges()
 
     def __lt__(self, node_2):
         return distance_between_points(
@@ -34,7 +27,9 @@ class Node:
         ) < distance_between_points((0, 0), self.coordinates)
 
     def __eq__(self, node_2):
-        return self.coordinates == node_2.coordinates and self.colour == node_2.colour
+        if not node_2:
+            return False
+        return self.coordinates == node_2.coordinates
 
     def __hash__(self):
         if self.colour == "R":
@@ -60,16 +55,18 @@ class Node:
             (x + 1, y - 1),
             (x + 1, y),
         ]:
+
             if is_position_valid(position, self.board_size) or self.is_external():
                 neighbours_list.append(position)
+
         # Add the external nodes as neighbours to each edge node
-        if y == 0 and self.colour == "B":
+        if y == 0:
             neighbours_list.append((0, -1))
-        if y == self.board_size - 1 and self.colour == "B":
+        if y == self.board_size - 1:
             neighbours_list.append((0, self.board_size))
-        if x == 0 and self.colour == "R":
+        if x == 0:
             neighbours_list.append((-1, 0))
-        if x == self.board_size - 1 and self.colour == "R":
+        if x == self.board_size - 1:
             neighbours_list.append((self.board_size, 0))
 
         return neighbours_list

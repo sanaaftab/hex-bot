@@ -7,13 +7,10 @@ def is_position_valid(position, board_size):
     :param board_size: The dimension of the board.
     :returns: True if the position exists on the board, False otherwise.
     """
-    try:
-        x, y = position
-        if x < 0 or x >= board_size or y < 0 or y >= board_size:
-            return False
-        return True
-    except Exception:
+    x, y = position
+    if x < 0 or x >= board_size or y < 0 or y >= board_size:
         return False
+    return True
 
 
 def is_coordinate_external(position, board_size):
@@ -23,7 +20,7 @@ def is_coordinate_external(position, board_size):
     :param position: The position to be evaluated. Can be either a tuple or a Node.
     :returns: True if the coordinates match that of an external node, False otherwise.
     """
-    x, y = position if type(position) == tuple else position.coordinates
+    x, y = position.coordinates
     return x == -1 or x == board_size or y == -1 or y == board_size
 
 
@@ -38,21 +35,6 @@ def is_position_available(position, board):
     return (
         is_position_valid(position, len(board))
         and board[position[0]][position[1]].is_free()
-    )
-
-
-def is_position_available_for_colour(position, board, colour):
-    """
-    Checks if the given position exists on the board and is free or occupied by
-    `colour`.
-
-    :param position: The position to check.
-    :param board: The board that the position is checked against.
-    :returns: True if it's a valid slot, and is not occupied. False otherwise.
-    """
-    return is_position_valid(position, len(board)) and (
-        board[position[0]][position[1]].is_free()
-        or board[position[0]][position[1]].colour == colour
     )
 
 

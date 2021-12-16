@@ -7,6 +7,7 @@ from helper_functions import *
 from dijkstra import *
 from minimax import *
 
+import random
 
 class Agent14:
     """Represents the agent for Group14."""
@@ -91,7 +92,16 @@ class Agent14:
             self.turn_count += 1
             return board
 
-        move = self.minimax_wrap(board)
+        # move = self.minimax_wrap(board)
+        if self.colour == "R":
+            path = dijkstra(board, self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down)
+        else:
+            path = dijkstra(board, self.EXTERNAL_NODES.external_left, self.EXTERNAL_NODES.external_right)
+        
+        if not path:
+            raise Exception("No path provided")
+        path = [node for node in path if not is_coordinate_external(node, len(board)) and not node.colour]
+        move = random.choice(path)
         x, y = move.coordinates
         move.occupy(self.colour)
 

@@ -70,7 +70,7 @@ def get_static_evaluation(board, external_nodes):
     red_eval = dijkstra(board, external_nodes.external_up, external_nodes.external_down)
     red_length = 0
     for node in red_eval:
-        if not is_coordinate_external(node.coordinates, len(board)) and not node.colour:
+        if not is_coordinate_external(node, len(board)) and not node.colour:
             red_length += 1
 
     blue_eval = dijkstra(
@@ -78,7 +78,7 @@ def get_static_evaluation(board, external_nodes):
     )
     blue_length = 0
     for node in blue_eval:
-        if not is_coordinate_external(node.coordinates, len(board)) and not node.colour:
+        if not is_coordinate_external(node, len(board)) and not node.colour:
             blue_length += 1
 
     return blue_length - red_length
