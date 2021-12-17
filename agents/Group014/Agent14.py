@@ -19,7 +19,7 @@ class Agent14:
     EXTERNAL_NODES = None
     TIME_BUDGET = 295 * 1000 * 1000 * 1000
     MINIMAX_TIMEOUT = 10 * 1000 * 1000 * 1000
-    SWITCH_TO_DIJKSTRA = 250 * 1000 * 1000 * 1000
+    SWITCH_TO_DIJKSTRA = 15 * 1000 * 1000 * 1000
 
     STARTING_MOVES = [
         (5, 5),
@@ -89,6 +89,7 @@ class Agent14:
                 self.board[opp_move[0]][opp_move[1]].occupy(
                     get_opposing_colour(self.colour)
                 )
+                self.MOVES_MADE.append(opp_move)
                 self.make_move(self.board, opp_move)
 
         return False
@@ -153,10 +154,10 @@ class Agent14:
                     else:
                         self.STARTING_MOVES.remove(possible_move)
                         possible_move = None
-                # This shouldn't really happen so I'm raising an error ...
-                # Can probably handle it better.
+                # If for some reason a move could not be made from the predetermined
+                # set, choose a random free move
                 if not possible_move:
-                    raise Exception("No starting move found")
+                    x, y = choice(get_free_nodes(board)).coordinates
             else:
                 possible_move = None
                 while self.PREDETERMINED_MOVES and not possible_move:
@@ -167,10 +168,57 @@ class Agent14:
                     else:
                         self.PREDETERMINED_MOVES.remove(possible_move)
                         possible_move = None
-                # This shouldn't really happen so I'm raising an error ...
-                # Can probably handle it better.
+                # If for some reason a move could not be made from the predetermined
+                # set, choose a random free move
                 if not possible_move:
-                    raise Exception("No predetermined move found")
+                    x, y = choice(get_free_nodes(board)).coordinates
+        elif self.turn_count < 20:
+            if self.colour == "R":
+                self.MOVES_MADE.pop()
+                # Bridge above
+                if is_position_available((opp_move[0] - 2, opp_move[1] + 1), board):
+                    x, y = (opp_move[0] - 2, opp_move[1] + 1)
+                # Bridge below
+                elif is_position_available((opp_move[0] + 2, opp_move[1] - 1), board):
+                    x, y = (opp_move[0] + 2, opp_move[1] - 1)
+                elif self.MOVES_MADE:
+                    while self.MOVES_MADE:
+                        move = self.MOVES_MADE.pop()
+                        # Bridge above
+                        if is_position_available((move[0] - 2, move[1] + 1), board):
+                            x, y = (move[0] - 2, move[1] + 1)
+                            break
+                        # Bridge below
+                        elif is_position_available((move[0] + 2, move[1] - 1), board):
+                            x, y = (move[0] + 2, move[1] - 1)
+                            break
+                else:
+                    path = dijkstra(board, self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down)
+                    path = [node for node in path if not is_coordinate_external(node, len(board)) and not node.colour]
+                    x, y = choice(path).coordinates
+            else:
+                self.MOVES_MADE.pop()
+                # Bridge above
+                if is_position_available((opp_move[0] + 1, opp_move[1] - 2), board):
+                    x, y = (opp_move[0] + 1, opp_move[1] - 2)
+                # Bridge below
+                elif is_position_available((opp_move[0] - 1, opp_move[1] + 2), board):
+                    x, y = (opp_move[0] - 1, opp_move[1] + 2)
+                elif self.MOVES_MADE:
+                    while self.MOVES_MADE:
+                        move = self.MOVES_MADE.pop()
+                        # Bridge above
+                        if is_position_available((move[0] + 1, move[1] - 2), board):
+                            x, y = (move[0] + 1, move[1] - 2)
+                            break
+                        # Bridge below
+                        elif is_position_available((move[0] - 1, move[1] + 2), board):
+                            x, y = (move[0] - 1, move[1] + 2)
+                            break
+                else:
+                    path = dijkstra(board, self.EXTERNAL_NODES.external_left, self.EXTERNAL_NODES.external_right)
+                    path = [node for node in path if not is_coordinate_external(node, len(board)) and not node.colour]
+                    x, y = choice(path).coordinates
         # -~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-
         # | TODO: Implement bridge connection |
         # -~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-
@@ -195,7 +243,6 @@ class Agent14:
             x, y = move.coordinates
 
         self.board[x][y].occupy(self.colour)
-        self.MOVES_MADE.append((x, y))
         print(f"{x}, {y} -- with time left: {int(self.TIME_BUDGET // (1000 * 1000 * 1000))}")
 
         self.TIME_BUDGET -= time_ns() - current_time
