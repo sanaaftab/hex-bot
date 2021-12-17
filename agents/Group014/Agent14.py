@@ -115,7 +115,6 @@ class Agent14:
             return
 
         if self.turn_count < 5:
-            print("Predetermined move -- ", end="")
             # If no predetermined moves have been generated, then get a random starting
             # move.
             if self.PREDETERMINED_MOVES == []:
@@ -172,64 +171,15 @@ class Agent14:
                 # set, choose a random free move
                 if not possible_move:
                     x, y = choice(get_free_nodes(board)).coordinates
-        elif self.turn_count < 20:
-            if self.colour == "R":
-                self.MOVES_MADE.pop()
-                # Bridge above
-                if is_position_available((opp_move[0] - 2, opp_move[1] + 1), board):
-                    x, y = (opp_move[0] - 2, opp_move[1] + 1)
-                # Bridge below
-                elif is_position_available((opp_move[0] + 2, opp_move[1] - 1), board):
-                    x, y = (opp_move[0] + 2, opp_move[1] - 1)
-                elif self.MOVES_MADE:
-                    while self.MOVES_MADE:
-                        move = self.MOVES_MADE.pop()
-                        # Bridge above
-                        if is_position_available((move[0] - 2, move[1] + 1), board):
-                            x, y = (move[0] - 2, move[1] + 1)
-                            break
-                        # Bridge below
-                        elif is_position_available((move[0] + 2, move[1] - 1), board):
-                            x, y = (move[0] + 2, move[1] - 1)
-                            break
-                else:
-                    path = dijkstra(board, self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down)
-                    path = [node for node in path if not is_coordinate_external(node, len(board)) and not node.colour]
-                    x, y = choice(path).coordinates
-            else:
-                self.MOVES_MADE.pop()
-                # Bridge above
-                if is_position_available((opp_move[0] + 1, opp_move[1] - 2), board):
-                    x, y = (opp_move[0] + 1, opp_move[1] - 2)
-                # Bridge below
-                elif is_position_available((opp_move[0] - 1, opp_move[1] + 2), board):
-                    x, y = (opp_move[0] - 1, opp_move[1] + 2)
-                elif self.MOVES_MADE:
-                    while self.MOVES_MADE:
-                        move = self.MOVES_MADE.pop()
-                        # Bridge above
-                        if is_position_available((move[0] + 1, move[1] - 2), board):
-                            x, y = (move[0] + 1, move[1] - 2)
-                            break
-                        # Bridge below
-                        elif is_position_available((move[0] - 1, move[1] + 2), board):
-                            x, y = (move[0] - 1, move[1] + 2)
-                            break
-                else:
-                    path = dijkstra(board, self.EXTERNAL_NODES.external_left, self.EXTERNAL_NODES.external_right)
-                    path = [node for node in path if not is_coordinate_external(node, len(board)) and not node.colour]
-                    x, y = choice(path).coordinates
         # -~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-
         # | TODO: Implement bridge connection |
         # -~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-
         else:
-            # Minimax
             if self.TIME_BUDGET > self.SWITCH_TO_DIJKSTRA:
-                print("Minimax move -- ", end="")
+                # Minimax
                 move = self.minimax_wrap(board)
             else:
-                print("Dijkstra move -- ", end="")
-            # Dijkstra
+                # Dijkstra
                 if self.colour == "R":
                     path = dijkstra(board, self.EXTERNAL_NODES.external_up, self.EXTERNAL_NODES.external_down)
                 else:
@@ -243,7 +193,6 @@ class Agent14:
             x, y = move.coordinates
 
         self.board[x][y].occupy(self.colour)
-        print(f"{x}, {y} -- with time left: {int(self.TIME_BUDGET // (1000 * 1000 * 1000))}")
 
         self.TIME_BUDGET -= time_ns() - current_time
         self.turn_count += 1
