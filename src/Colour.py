@@ -49,6 +49,6 @@ class Colour(Enum):
             return None
 
 
-if (__name__ == "__main__"):
+if __name__ == "__main__":
     for colour in Colour:
         print(colour)
